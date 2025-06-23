@@ -667,6 +667,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 modal.querySelector('#car-item-name').value = data.nome || '';
                 modal.querySelector('#car-item-plate').value = data.placa || '';
                 modal.querySelector('#car-item-km').value = data.kmAtual || '';
+                modal.querySelector('#car-item-cc').value = data.cc || '';
+                modal.querySelector('#car-item-driver').value = data.condutor || '';
+                modal.querySelector('#car-item-license').value = data.licenciamento || '';
+                modal.querySelector('#car-item-renavan').value = data.renavan || '';
                 modal.querySelector('#car-item-km').disabled = !!data.id;
             } else if (modalId === 'car-update-km-modal') {
                  modal.querySelector('#car-update-km-modal-title').textContent = `Atualizar KM de ${data.nome}`;
@@ -702,6 +706,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 nome: document.getElementById('car-item-name').value,
                 placa: document.getElementById('car-item-plate').value,
                 kmAtual: parseInt(document.getElementById('car-item-km').value) || 0,
+                cc: document.getElementById('car-item-cc').value,
+                condutor: document.getElementById('car-item-driver').value,
+                licenciamento: document.getElementById('car-item-license').value,
+                renavan: document.getElementById('car-item-renavan').value,
             };
             const promise = id ? carRef.child(id).update(data) : carRef.push(data);
             promise.then(closeCarModals).catch(err => console.error("Erro:", err));
@@ -770,6 +778,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td data-label="Veículo">${car.nome || 'N/A'}</td>
                     <td data-label="Placa">${car.placa || 'N/A'}</td>
                     <td data-label="KM Atual">${formatKm(car.kmAtual)}</td>
+                    <td data-label="C/C">${car.cc || 'N/A'}</td>
+                    <td data-label="Condutor">${car.condutor || 'N/A'}</td>
+                    <td data-label="Licenciamento">${car.licenciamento || 'N/A'}</td>
+                    <td data-label="Renavan">${car.renavan || 'N/A'}</td>
                     <td data-label="Próx. Óleo (KM)">${formatKm(car.proximaTrocaOleoKM)}</td>
                     <td data-label="Data Próx. Óleo">${formatDate(car.proximaTrocaOleoData)}</td>
                     <td data-label="Próx. Man. (KM)">${formatKm(car.proximaManutencaoKM)}</td>
@@ -856,16 +868,28 @@ document.addEventListener('DOMContentLoaded', function () {
         const toolItemModal = document.getElementById('tool-item-modal');
         const toolAssignModal = document.getElementById('tool-assign-modal');
         const toolMaintenanceModal = document.getElementById('tool-maintenance-modal');
+        const toolHistoryModal = document.getElementById('tool-history-modal');
 
-        // Forms
+        // Forms and other elements
         const toolItemForm = document.getElementById('tool-item-form');
         const toolAssignForm = document.getElementById('tool-assign-form');
         const toolMaintenanceForm = document.getElementById('tool-maintenance-form');
-
         const toolTableBody = document.getElementById('tool-table-body');
         const filterToolName = document.getElementById('filter-tool-name');
         const filterToolCode = document.getElementById('filter-tool-code');
         const filterToolStatus = document.getElementById('filter-tool-status');
+        const btnViewToolHistory = document.getElementById('btn-view-tool-history');
+        const toolHistoryModalClose = document.getElementById('tool-history-modal-close');
+        const selectToolHistory = document.getElementById('select-tool-history');
+        const toolHistoryLog = document.getElementById('tool-history-log');
+
+        const addToolHistory = (toolId, action) => {
+            const historyEntry = {
+                date: new Date().toISOString(),
+                action: action,
+            };
+            toolRef.child(toolId).child('historico').push(historyEntry);
+        };
 
         // Pre-carrega funcionários e obras
         database.ref('funcionarios').once('value', snapshot => { employeesData = snapshot.val() || {}; });
@@ -912,12 +936,14 @@ document.addEventListener('DOMContentLoaded', function () {
             toolItemModal.style.display = 'none';
             toolAssignModal.style.display = 'none';
             toolMaintenanceModal.style.display = 'none';
+            toolHistoryModal.style.display = 'none';
         };
 
         document.getElementById('btn-add-tool').addEventListener('click', () => openModal('tool-item-modal'));
         document.getElementById('tool-item-modal-close').addEventListener('click', closeToolModals);
         document.getElementById('tool-assign-modal-close').addEventListener('click', closeToolModals);
         document.getElementById('tool-maintenance-modal-close').addEventListener('click', closeToolModals);
+        toolHistoryModalClose.addEventListener('click', closeToolModals);
         
         toolItemForm.addEventListener('submit', e => {
             e.preventDefault();
@@ -934,9 +960,12 @@ document.addEventListener('DOMContentLoaded', function () {
             let promise;
             if (id) {
                 promise = toolRef.child(id).update(data);
+                addToolHistory(id, `Dados da ferramenta atualizados.`);
             } else {
                 data.status = 'Disponível';
-                promise = toolRef.push(data);
+                promise = toolRef.push(data).then(newRef => {
+                    addToolHistory(newRef.key, `Ferramenta criada com status 'Disponível'.`);
+                });
             }
             promise.then(closeToolModals).catch(err => console.error(err));
         });
@@ -952,21 +981,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 local: project,
                 dataRetirada: document.getElementById('tool-assign-date').value,
             };
-            toolRef.child(id).update(updates).then(closeToolModals);
+            toolRef.child(id).update(updates).then(() => {
+                addToolHistory(id, `Alocada para ${employee} na obra ${project}.`);
+                closeToolModals();
+            });
         });
         
         toolMaintenanceForm.addEventListener('submit', e => {
             e.preventDefault();
             const id = document.getElementById('tool-maintenance-id').value;
+            const oldTool = toolsData[id];
             const status = document.getElementById('tool-maintenance-status').value;
             const updates = {
                 status: status,
                 proximaManutencao: document.getElementById('tool-maintenance-next-date').value,
-                // Limpa localização se voltou da manutenção
-                responsavel: status === 'Disponível' ? null : toolsData[id].responsavel,
-                local: status === 'Disponível' ? null : toolsData[id].local,
+                responsavel: status === 'Disponível' ? null : oldTool.responsavel,
+                local: status === 'Disponível' ? null : oldTool.local,
             };
-            toolRef.child(id).update(updates).then(closeToolModals);
+            toolRef.child(id).update(updates).then(() => {
+                addToolHistory(id, `Status alterado de '${oldTool.status}' para '${status}'.`);
+                closeToolModals();
+            });
         });
 
         const renderToolTable = () => {
@@ -982,11 +1017,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 return nameMatch && codeMatch && statusMatch;
             }).forEach(([id, tool]) => {
                 const row = toolTableBody.insertRow();
-                let rowClass = '';
-                if(tool.status === 'Em Manutenção' || (tool.proximaManutencao && new Date(tool.proximaManutencao) <= new Date())) {
-                    rowClass = 'maintenance-due';
+                let statusColorClass = '';
+                 switch (tool.status) {
+                    case 'Disponível': statusColorClass = 'status-dot-green'; break;
+                    case 'Em Uso': statusColorClass = 'status-dot-yellow'; break;
+                    case 'Em Manutenção': statusColorClass = 'status-dot-red'; break;
                 }
-                row.className = rowClass;
+                
+                if(tool.status === 'Em Manutenção') {
+                    row.className = 'maintenance-due';
+                }
 
                 let location = 'Depósito';
                 if(tool.status === 'Em Uso') {
@@ -998,9 +1038,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.innerHTML = `
                     <td data-label="Ferramenta">${tool.nome || 'N/A'}</td>
                     <td data-label="Código">${tool.codigo || 'N/A'}</td>
-                    <td data-label="Status">${tool.status || 'N/A'}</td>
+                    <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
-                    <td data-label="Próx. Manutenção">${tool.proximaManutencao ? new Date(tool.proximaManutencao + 'T03:00:00Z').toLocaleDateString('pt-BR') : '-'}</td>
                     <td data-label="Ações">
                         <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
                         <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
@@ -1011,7 +1050,45 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             lucide.createIcons();
         };
+        
+        const displayToolHistory = (toolId) => {
+            toolHistoryLog.innerHTML = '<p>Carregando histórico...</p>';
+            const selectedTool = toolsData[toolId];
+            if (!selectedTool || !selectedTool.historico) {
+                toolHistoryLog.innerHTML = '<p>Nenhum histórico encontrado para esta ferramenta.</p>';
+                return;
+            }
 
+            const historyEntries = Object.values(selectedTool.historico).sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            toolHistoryLog.innerHTML = historyEntries.map(entry => {
+                const date = new Date(entry.date).toLocaleString('pt-BR');
+                return `<div class="history-item">
+                    ${entry.action}
+                    <span>${date}</span>
+                </div>`;
+            }).join('');
+        };
+
+        btnViewToolHistory.addEventListener('click', () => {
+            selectToolHistory.innerHTML = '<option value="">Selecione uma ferramenta...</option>';
+            Object.entries(toolsData).forEach(([id, tool]) => {
+                const displayText = `${tool.nome} (${tool.codigo || 'S/C'})`;
+                selectToolHistory.innerHTML += `<option value="${id}">${displayText}</option>`;
+            });
+            toolHistoryLog.innerHTML = '<p>Selecione uma ferramenta para ver seu histórico.</p>';
+            toolHistoryModal.style.display = 'block';
+        });
+
+        selectToolHistory.addEventListener('change', () => {
+            const selectedToolId = selectToolHistory.value;
+            if (selectedToolId) {
+                displayToolHistory(selectedToolId);
+            } else {
+                toolHistoryLog.innerHTML = '<p>Selecione uma ferramenta para ver seu histórico.</p>';
+            }
+        });
+        
         toolRef.on('value', snapshot => {
             toolsData = {};
             const data = snapshot.val() || {};
@@ -1025,16 +1102,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const button = e.target.closest('.btn-status');
             if (!button) return;
             const id = button.dataset.id;
+            const tool = toolsData[id];
             
             if (button.classList.contains('btn-edit-tool')) {
-                openModal('tool-item-modal', toolsData[id]);
+                openModal('tool-item-modal', tool);
             } else if (button.classList.contains('btn-assign-tool')) {
-                openModal('tool-assign-modal', toolsData[id]);
+                openModal('tool-assign-modal', tool);
             } else if (button.classList.contains('btn-maintenance-tool')) {
-                openModal('tool-maintenance-modal', toolsData[id]);
+                openModal('tool-maintenance-modal', tool);
             } else if (button.classList.contains('btn-return-tool')) {
                 const updates = { status: 'Disponível', responsavel: null, local: null, dataRetirada: null };
-                toolRef.child(id).update(updates);
+                toolRef.child(id).update(updates).then(() => {
+                     addToolHistory(id, `Devolvida do status '${tool.status}'. Responsável anterior: ${tool.responsavel || 'N/A'}.`);
+                });
             }
         });
     };

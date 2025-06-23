@@ -803,9 +803,10 @@
             height: 1.2em;
         }
 
-        #stock-movement-modal .form-grid, #car-update-km-modal .form-grid, #stock-item-modal .form-grid, #tool-item-modal .form-grid, #tool-assign-modal .form-grid {
+        #stock-movement-modal .form-grid, #car-update-km-modal .form-grid, #stock-item-modal .form-grid, #tool-item-modal .form-grid, #tool-assign-modal .form-grid, #car-item-modal .form-grid {
             grid-template-columns: 1fr;
         }
+
          #car-maintenance-modal .form-grid {
             grid-template-columns: 1fr 1fr;
         }
@@ -813,9 +814,42 @@
         #car-maintenance-modal .form-group.full-width {
             grid-column: 1 / -1;
         }
+        
+        /* Estilos para Ferramentas */
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .status-dot-green { background-color: var(--success-color); }
+        .status-dot-yellow { background-color: var(--warning-color); }
+        .status-dot-red { background-color: var(--danger-color); }
 
+        td[data-label="Status"] div {
+            display: flex;
+            align-items: center;
+        }
+
+        #tool-history-log .history-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            line-height: 1.5;
+        }
+        #tool-history-log .history-item:last-child {
+            border-bottom: none;
+        }
+        #tool-history-log .history-item span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
         @media (min-width: 769px) {
             .form-grid { grid-template-columns: repeat(3, 1fr); }
+            #car-item-modal .form-grid { grid-template-columns: repeat(2, 1fr); }
             .form-group-obs { grid-column: span 2; }
             #stock-movement-modal .form-grid {
                 grid-template-columns: 1fr 1fr;
@@ -848,7 +882,7 @@
             }
             header h1, .detail-header h1 { font-size: 2rem; }
             .header-text, .detail-header .header-text { text-align: center; }
-            .form-grid { grid-template-columns: 1fr; }
+            .form-grid, #car-item-modal .form-grid { grid-template-columns: 1fr; }
             .table-header { flex-direction: column; align-items: stretch; }
             .table-filters { grid-template-columns: 1fr; }
             .vencimento-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -1258,7 +1292,7 @@
                     <div class="table-wrapper">
                          <table>
                             <thead>
-                                <tr><th>Veículo</th><th>Placa</th><th>KM Atual</th><th>Próx. Troca Óleo (KM)</th><th>Data Próx. Óleo</th><th>Próx. Manutenção (KM)</th><th>Data Próx. Man.</th><th>Ações</th></tr>
+                                <tr><th>Veículo</th><th>Placa</th><th>KM Atual</th><th>C/C</th><th>Condutor</th><th>Licenciamento</th><th>Renavan</th><th>Próx. Troca Óleo (KM)</th><th>Data Próx. Óleo</th><th>Próx. Manutenção (KM)</th><th>Data Próx. Man.</th><th>Ações</th></tr>
                             </thead>
                             <tbody id="car-table-body"></tbody>
                         </table>
@@ -1267,15 +1301,19 @@
             </div>
         </div>
         <div id="car-item-modal" class="modal">
-            <div class="modal-content">
+            <div class="modal-content large">
                 <span class="close-button" id="car-item-modal-close">&times;</span>
                 <h2 id="car-item-modal-title">Adicionar Veículo</h2>
                 <form id="car-item-form">
                     <input type="hidden" id="car-item-id">
-                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                    <div class="form-grid">
                         <div class="form-group"><label for="car-item-name">Veículo (Marca/Modelo)</label><input type="text" id="car-item-name" required></div>
                         <div class="form-group"><label for="car-item-plate">Placa</label><input type="text" id="car-item-plate" required></div>
                         <div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div>
+                        <div class="form-group"><label for="car-item-cc">C/C</label><input type="text" id="car-item-cc"></div>
+                        <div class="form-group"><label for="car-item-driver">Condutor</label><input type="text" id="car-item-driver"></div>
+                        <div class="form-group"><label for="car-item-license">Licenciamento</label><input type="text" id="car-item-license"></div>
+                        <div class="form-group"><label for="car-item-renavan">Renavan</label><input type="text" id="car-item-renavan"></div>
                     </div>
                     <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button>
                 </form>
@@ -1346,6 +1384,7 @@
                 </header>
                 <section class="actions-container">
                     <button id="btn-add-tool" class="action-button"><i data-lucide="plus"></i> Adicionar Nova Ferramenta</button>
+                    <button id="btn-view-tool-history" class="action-button secondary"><i data-lucide="history"></i> Ver Histórico</button>
                 </section>
                  <section class="data-table-container">
                     <div class="table-header">
@@ -1359,7 +1398,7 @@
                     <div class="table-wrapper">
                          <table>
                             <thead>
-                                <tr><th>Ferramenta</th><th>Código</th><th>Status</th><th>Local/Responsável</th><th>Próx. Manutenção</th><th>Ações</th></tr>
+                                <tr><th>Ferramenta</th><th>Código</th><th>Status</th><th>Local/Responsável</th><th>Ações</th></tr>
                             </thead>
                             <tbody id="tool-table-body"></tbody>
                         </table>
@@ -1419,6 +1458,19 @@
                     </div>
                     <button type="submit" class="btn-submit"><i data-lucide="save"></i> Atualizar</button>
                 </form>
+            </div>
+        </div>
+        <div id="tool-history-modal" class="modal">
+            <div class="modal-content large">
+                <span class="close-button" id="tool-history-modal-close">&times;</span>
+                <h2>Histórico da Ferramenta</h2>
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="select-tool-history">Selecione uma Ferramenta</label>
+                    <select id="select-tool-history"></select>
+                </div>
+                <div id="tool-history-log" class="vencimentos-list" style="margin-top: 1.5rem;">
+                    <!-- O histórico será inserido aqui -->
+                </div>
             </div>
         </div>
     </div>
