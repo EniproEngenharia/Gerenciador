@@ -1002,6 +1002,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Próx. Manutenção">${tool.proximaManutencao ? new Date(tool.proximaManutencao + 'T03:00:00Z').toLocaleDateString('pt-BR') : '-'}</td>
                     <td data-label="Ações">
+                        <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
                         <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
                         <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
                         <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
@@ -1025,9 +1026,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!button) return;
             const id = button.dataset.id;
             
-            if (button.classList.contains('btn-assign-tool')) openModal('tool-assign-modal', toolsData[id]);
-            if (button.classList.contains('btn-maintenance-tool')) openModal('tool-maintenance-modal', toolsData[id]);
-            if (button.classList.contains('btn-return-tool')) {
+            if (button.classList.contains('btn-edit-tool')) {
+                openModal('tool-item-modal', toolsData[id]);
+            } else if (button.classList.contains('btn-assign-tool')) {
+                openModal('tool-assign-modal', toolsData[id]);
+            } else if (button.classList.contains('btn-maintenance-tool')) {
+                openModal('tool-maintenance-modal', toolsData[id]);
+            } else if (button.classList.contains('btn-return-tool')) {
                 const updates = { status: 'Disponível', responsavel: null, local: null, dataRetirada: null };
                 toolRef.child(id).update(updates);
             }
