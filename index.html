@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Obras - Enipro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="enipro.png" type="image/png">
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* --- Reset Básico, Fontes e Variáveis --- */
+        :root {
+            /* Tema Claro (Padrão) */
+            --primary-color: #2D3748; /* Cinza Ardósia Escuro */
+            --primary-hover: #1A202C; /* Quase Preto */
+            --secondary-color: #718096; /* Cinza Médio */
+            --secondary-hover: #4A5568; /* Cinza Ardósia */
+            --danger-color: #E53E3E; /* Vermelho */
+            --danger-hover: #C53030;
+            --success-color: #38A169; /* Verde */
+            --warning-color: #D69E2E; /* Amarelo/Ouro */
+            --background-color: #F7FAFC;
+            --card-background: #FFFFFF;
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --border-color: #E2E8F0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --border-radius: 10px;
+            --input-disabled-bg: #F7FAFC;
+
+            /* Cores de status/alerta - Claro */
+            --due-urgent-bg: #FFF5F5;
+            --due-soon-bg: #FFFFF0;
+            --due-ok-bg: #F0FFF4;
+            --low-stock-bg: #FEFBC8; 
+            --maintenance-due-bg: #FEFBC8; /* Amarelo bem claro para manutenção */
+        }
+
+        body.dark-mode {
+            /* Tema Escuro */
+            --primary-color: #90CDF4; /* Azul Claro */
+            --primary-hover: #BEE3F8;
+            --secondary-color: #A0AEC0; /* Cinza Claro */
+            --secondary-hover: #718096;
+            --danger-color: #FC8181; /* Vermelho Claro */
+            --danger-hover: #E53E3E;
+            --success-color: #68D391; /* Verde Claro */
+            --warning-color: #F6E05E; /* Amarelo Claro */
+            --background-color: #1A202C;
+            --card-background: #2D3748;
+            --text-primary: #F7FAFC;
+            --text-secondary: #A0AEC0;
+            --border-color: #4A5568;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            --input-disabled-bg: #2D3748;
+
+            /* Cores de status/alerta - Escuro */
+            --due-urgent-bg: rgba(229, 62, 62, 0.2);
+            --due-soon-bg: rgba(214, 158, 46, 0.2);
+            --due-ok-bg: rgba(56, 161, 105, 0.2);
+            --low-stock-bg: rgba(246, 224, 94, 0.2);
+            --maintenance-due-bg: rgba(246, 224, 94, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* --- Botão de Tema --- */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-toggle i {
+            color: var(--text-primary);
+            width: 24px;
+            height: 24px;
+        }
+
+        /* --- PÁGINA DE SELEÇÃO DE SERVIÇO --- */
+        #service-selection-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 2rem;
+            background-color: var(--background-color);
+            transition: background-color 0.3s;
+        }
+
+        .service-logo {
+            max-width: 300px;
+            width: 100%;
+            margin-bottom: 4rem;
+        }
+
+        .service-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .service-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--card-background);
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+            box-shadow: var(--shadow);
+        }
+
+        .service-button:hover {
+            background-color: var(--primary-color);
+            color: var(--card-background);
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+        }
+        .dark-mode .service-button:hover {
+            color: #1A202C;
+        }
+
+        .service-button i {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        /* --- Estilos Gerais das Views --- */
+        .container {
+            max-width: 1400px;
+            margin: 2.5rem auto;
+            padding: 1.5rem;
+        }
+
+        .top-level-view {
+            display: none; /* Todas as views começam escondidas */
+            width: 100%;
+            min-height: 100%;
+        }
+        
+        #app-container, #stock-app-container, #car-app-container, #tool-app-container {
+            display: none;
+        }
+
+        header, .detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .back-to-services-button {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .dark-mode .back-to-services-button {
+             background-color: var(--background-color);
+             border-color: var(--border-color);
+             color: var(--text-secondary);
+        }
+        .back-to-services-button:hover {
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: var(--shadow);
+        }
+        .dark-mode .back-to-services-button:hover {
+            background-color: var(--secondary-hover);
+        }
+
+        .detail-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--card-background);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        header .logo, .detail-header .logo {
+            max-height: 80px;
+            width: auto;
+            flex-shrink: 0;
+        }
+
+        .header-text {
+            text-align: left;
+        }
+
+        header h1, .detail-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        header p, .detail-header p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .actions-container {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .action-button, .btn-submit, .back-button, .view-details-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 12px 15px;
+            border: 1px solid transparent;
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            color: var(--card-background);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-decoration: none;
+        }
+        
+        .dark-mode .action-button, .dark-mode .btn-submit, .dark-mode .back-button, .dark-mode .view-details-button {
+            color: #1A202C; /* Texto escuro para botões claros */
+        }
+
+
+        .action-button:hover, .btn-submit:hover, .back-button:hover, .view-details-button:hover {
+            background-color: var(--primary-hover);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-3px);
+        }
+
+        .action-button:active, .btn-submit:active, .back-button:active, .view-details-button:active {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .action-button i, .btn-submit i, .back-button i, .view-details-button i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .action-button.secondary, .back-button {
+            background-color: var(--secondary-color);
+        }
+        .action-button.secondary:hover, .back-button:hover {
+            background-color: var(--secondary-hover);
+        }
+        .action-button.danger { background-color: var(--danger-color); }
+        .action-button.danger:hover { background-color: var(--danger-hover); }
+        .action-button.warning { background-color: var(--warning-color); color: var(--text-primary); }
+        .action-button.warning:hover { background-color: #B7791F; }
+        
+        .dark-mode .action-button.warning {
+             color: #1A202C;
+        }
+
+        .entry-form-container, .data-table-container {
+            background-color: var(--card-background);
+            padding: 2rem 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 3rem;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s, color 0.3s;
+            background-color: var(--card-background);
+            color: var(--text-primary);
+        }
+        
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active  {
+            -webkit-box-shadow: 0 0 0 30px var(--card-background) inset !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
+        }
+
+        input:disabled {
+            background-color: var(--input-disabled-bg);
+            cursor: not-allowed;
+            color: var(--text-secondary);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.5);
+        }
+        
+        .dark-mode input:focus, .dark-mode select:focus, .dark-mode textarea:focus {
+             box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.25);
+        }
+
+        .select-with-button {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-add-inside {
+            padding: 0 15px;
+            border: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+        .btn-add-inside:hover {
+            background-color: #E2E8F0;
+        }
+        
+        .dark-mode .btn-add-inside:hover {
+            background-color: #4A5568;
+        }
+
+        .btn-submit {
+            grid-column: 1 / -1;
+            margin-top: 1.5rem;
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            justify-content: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .table-header h2 {
+            margin: 0;
+        }
+
+        .table-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--secondary-color);
+            width: 18px;
+            height: 18px;
+        }
+
+        .table-filters input, .table-filters select {
+            padding-left: 40px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            transition: border-color 0.3s;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            transition: border-color 0.3s;
+        }
+
+        td {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        td:first-child {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        thead th {
+            background-color: var(--background-color);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            transition: background-color 0.3s;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: #EDF2F7;
+        }
+        .dark-mode tbody tr:hover {
+            background-color: #4A5568;
+        }
+
+        .status {
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+        .status-locado { background-color: #C6F6D5; color: #22543D; }
+        .status-parcial { background-color: #FEEBC8; color: #9C4221; }
+
+        .dark-mode .status-locado { background-color: var(--success-color); color: #1A202C; }
+        .dark-mode .status-parcial { background-color: var(--warning-color); color: #1A202C; }
+
+        .btn-status {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            color: var(--secondary-color);
+        }
+        .btn-status:hover {
+            background-color: #E2E8F0;
+            color: var(--primary-color);
+        }
+        .dark-mode .btn-status:hover {
+            background-color: #718096;
+            color: var(--text-primary);
+        }
+
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(10, 10, 20, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--card-background);
+            margin: 5% auto;
+            padding: 3rem;
+            border-radius: var(--border-radius);
+            max-width: 550px;
+            width: 90%;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            animation: slide-down 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: background-color 0.3s;
+        }
+
+        .modal-content.large {
+            max-width: 850px;
+        }
+
+        @keyframes slide-down {
+            from { transform: translateY(-40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close-button {
+            color: var(--secondary-color);
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .close-button:hover {
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+
+        .status-modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .vencimentos-list {
+            margin-top: 1.5rem;
+            max-height: 45vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            transition: border-color 0.3s;
+        }
+
+        .vencimento-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+        }
+
+        .vencimento-item:last-child { border-bottom: none; }
+        .vencimento-item-info { font-weight: 600; }
+        .vencimento-item-info span {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .vencimento-item-actions { display: flex; gap: 1.5rem; }
+
+        .vencimento-item-actions .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .vencimento-item-actions .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-actions-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+        
+        #employeeDueModal .modal-content h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--warning-color);
+        }
+        
+        .dark-mode #employeeDueModal .modal-content h2 {
+            color: var(--warning-color);
+        }
+
+        #employeeDueList .vencimento-item-info span {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .modal-footer-note {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Views (app-container) */
+        #app-container .view {
+            display: none;
+        }
+
+        .view-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+        }
+
+        .view-header h1 {
+            font-size: 2rem;
+            margin: 0;
+        }
+        
+        #employee-list-view .data-table-container {
+            padding: 2rem;
+        }
+
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background-color: var(--card-background);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .view-details-button {
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            background-color: var(--success-color);
+        }
+        .view-details-button:hover {
+            background-color: #2F855A;
+        }
+        .dark-mode .view-details-button:hover {
+            background-color: #9AE6B4;
+        }
+        
+        tbody tr.due-urgent { background-color: var(--due-urgent-bg); }
+        tbody tr.due-soon   { background-color: var(--due-soon-bg); }
+        tbody tr.due-ok     { background-color: var(--due-ok-bg); }
+        tbody tr.low-stock, tbody tr.maintenance-due  { background-color: var(--maintenance-due-bg); }
+
+
+        tbody tr.due-urgent:hover,
+        tbody tr.due-soon:hover,
+        tbody tr.due-ok:hover,
+        tbody tr.low-stock:hover,
+        tbody tr.maintenance-due:hover {
+            background-color: #EDF2F7;
+        }
+        .dark-mode tbody tr.due-urgent:hover,
+        .dark-mode tbody tr.due-soon:hover,
+        .dark-mode tbody tr.due-ok:hover,
+        .dark-mode tbody tr.low-stock:hover,
+        .dark-mode tbody tr.maintenance-due:hover {
+            background-color: #4A5568;
+        }
+
+        .modal-overlay {
+            display: none; /* Inicia escondido */
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(8px);
+        }
+
+        #password-form .form-group, #stock-password-form .form-group, #car-password-form .form-group, #tool-password-form .form-group {
+            margin-bottom: 1rem;
+        }
+
+        #password-form .btn-submit, #stock-password-form .btn-submit, #car-password-form .btn-submit, #tool-password-form .btn-submit {
+            margin-top: 0.5rem;
+            width: 100%;
+            max-width: none;
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            font-weight: 500;
+            text-align: center;
+            margin-top: 1rem;
+            height: 1.2em;
+        }
+
+        #stock-movement-modal .form-grid, #car-update-km-modal .form-grid, #stock-item-modal .form-grid, #tool-item-modal .form-grid, #tool-assign-modal .form-grid {
+            grid-template-columns: 1fr;
+        }
+         #car-maintenance-modal .form-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        #car-maintenance-modal .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (min-width: 769px) {
+            .form-grid { grid-template-columns: repeat(3, 1fr); }
+            .form-group-obs { grid-column: span 2; }
+            #stock-movement-modal .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+             #car-update-km-modal .form-grid {
+                grid-template-columns: 1fr;
+            }
+            #stock-item-modal .form-grid {
+                grid-template-columns: 1fr;
+            }
+            #tool-item-modal .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            @media (min-width: 1200px) {
+                .form-grid { grid-template-columns: repeat(4, 1fr); }
+                .form-group-obs { grid-column: span 2; }
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                margin: 1.5rem auto;
+            }
+            header, .detail-header { flex-direction: column; text-align: center; gap: 1rem; }
+            .back-to-services-button {
+                top: 20px;
+                left: 20px;
+                transform: none;
+            }
+            header h1, .detail-header h1 { font-size: 2rem; }
+            .header-text, .detail-header .header-text { text-align: center; }
+            .form-grid { grid-template-columns: 1fr; }
+            .table-header { flex-direction: column; align-items: stretch; }
+            .table-filters { grid-template-columns: 1fr; }
+            .vencimento-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .list-item { flex-direction: column; align-items: stretch; gap: 1rem; }
+            .entry-form-container, .data-table-container, #employee-list-view .data-table-container { padding: 1.5rem; }
+
+            .table-wrapper.card-view {
+                border: none;
+                overflow-x: hidden;
+            }
+            .table-wrapper.card-view table,
+            .table-wrapper.card-view thead,
+            .table-wrapper.card-view tbody,
+            .table-wrapper.card-view th,
+            .table-wrapper.card-view td,
+            .table-wrapper.card-view tr {
+                display: block;
+            }
+
+            .table-wrapper.card-view thead {
+                display: none;
+            }
+
+            .table-wrapper.card-view tr {
+                margin-bottom: 1.5rem;
+                border-radius: var(--border-radius);
+                box-shadow: var(--shadow);
+                border: 1px solid var(--border-color);
+                background-color: var(--card-background);
+                padding: 0;
+                position: relative;
+                overflow: hidden;
+            }
+            .table-wrapper.card-view tr::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 5px;
+                height: 100%;
+                background-color: transparent;
+                transition: background-color 0.3s ease;
+            }
+            
+            .table-wrapper.card-view tr.due-urgent::after,
+            .table-wrapper.card-view tr.maintenance-due::after { background-color: var(--danger-color); }
+            .table-wrapper.card-view tr.due-soon::after { background-color: var(--warning-color); }
+            .table-wrapper.card-view tr.due-ok::after { background-color: var(--success-color); }
+            .table-wrapper.card-view tr.low-stock::after { background-color: var(--warning-color); }
+
+
+            .table-wrapper.card-view tr:last-child {
+                margin-bottom: 0;
+            }
+
+            .table-wrapper.card-view td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.85rem 1.25rem;
+                text-align: right;
+                border-bottom: 1px solid var(--border-color);
+                white-space: normal;
+            }
+            
+            .table-wrapper.card-view td:last-child {
+                border-bottom: none;
+            }
+
+            .table-wrapper.card-view td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                text-align: left;
+                color: var(--text-primary);
+                margin-right: 1rem;
+            }
+
+            .table-wrapper.card-view .status {
+                text-align: right;
+                width: auto;
+            }
+            
+            .table-wrapper.card-view .btn-status {
+                justify-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Botão de Alternar Tema -->
+    <button id="theme-toggle" class="theme-toggle" title="Alternar tema">
+        <i data-lucide="moon"></i>
+    </button>
+
+    <!-- PÁGINA DE SELEÇÃO DE SERVIÇO -->
+    <div id="service-selection-view" class="top-level-view">
+        <img src="enipro.png" alt="Logo da Enipro" class="service-logo" onerror="this.onerror=null;this.src='https://placehold.co/300x100/ffffff/000000?text=Enipro';">
+        <div class="service-buttons">
+            <button id="btn-go-to-rentals" class="service-button">
+                <i data-lucide="building-2"></i>
+                <span>Gerenciador de Obras</span>
+            </button>
+            <button id="btn-go-to-stock" class="service-button">
+                 <i data-lucide="boxes"></i>
+                <span>Controle de Estoque</span>
+            </button>
+            <button id="btn-go-to-cars" class="service-button">
+                 <i data-lucide="car"></i>
+                <span>Controle de Carros</span>
+            </button>
+            <button id="btn-go-to-tools" class="service-button">
+                 <i data-lucide="wrench"></i>
+                <span>Controle de Ferramentas</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Wrapper para o App de Gerenciamento de Obras -->
+    <div id="rental-app-wrapper" class="top-level-view">
+        <div id="password-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>Acesso ao Gerenciador de Obras</h2>
+                <p>Por favor, digite a senha para continuar.</p>
+                <form id="password-form">
+                    <div class="form-group">
+                        <label for="password-input">Senha</label>
+                        <input type="password" id="password-input" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Entrar</button>
+                    <p id="password-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+        <div id="app-container">
+            <div id="main-view" class="view">
+                <div class="container">
+                    <header>
+                        <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                         <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                        <div class="header-text">
+                            <h1>Gerenciador de Obras</h1>
+                            <p>Controle de entradas e saídas de equipamentos em tempo real.</p>
+                        </div>
+                    </header>
+                    <section class="actions-container">
+                        <button id="btnNovaObra" class="action-button"><i data-lucide="plus-circle"></i> Cadastrar Obra</button>
+                        <button id="btnNovoFornecedor" class="action-button"><i data-lucide="truck"></i> Cadastrar Fornecedor</button>
+                        <button id="btnNovoEquipamento" class="action-button"><i data-lucide="wrench"></i> Cadastrar Equipamento</button>
+                        <button id="btnNovoFuncionario" class="action-button"><i data-lucide="user-plus"></i> Cadastrar Funcionário</button>
+                        <a href="#employee-list" class="action-button secondary"><i data-lucide="users"></i> Ver Funcionários</a>
+                        <a href="#dashboard" class="action-button secondary"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                    </section>
+                    <main class="entry-form-container">
+                        <h2>Lançamento de Equipamento</h2>
+                        <form id="main-form">
+                            <div class="form-grid">
+                                <div class="form-group"><label for="selectCliente">Cliente/Obra</label><div class="select-with-button"><select id="selectCliente" required></select><button type="button" id="btnFastAddCliente" class="btn-add-inside" title="Adicionar Novo Cliente">+</button></div></div>
+                                <div class="form-group"><label for="inputEndereco">Endereço</label><input type="text" id="inputEndereco" disabled placeholder="Preenchido automaticamente"></div>
+                                <div class="form-group"><label for="inputCidade">Cidade</label><input type="text" id="inputCidade" disabled placeholder="Preenchido automaticamente"></div>
+                                <div class="form-group"><label for="selectFornecedor">Fornecedor</label><div class="select-with-button"><select id="selectFornecedor" required></select><button type="button" id="btnFastAddFornecedor" class="btn-add-inside" title="Adicionar Novo Fornecedor">+</button></div></div>
+                                <div class="form-group"><label for="selectEquipamento">Equipamento</label><div class="select-with-button"><select id="selectEquipamento" required></select><button type="button" id="btnFastAddEquipamento" class="btn-add-inside" title="Adicionar Novo Equipamento">+</button></div></div>
+                                <div class="form-group"><label for="selectFuncionario">Funcionário</label><div class="select-with-button"><select id="selectFuncionario" required></select><button type="button" id="btnFastAddFuncionario" class="btn-add-inside" title="Adicionar Novo Funcionário">+</button></div></div>
+                                <div class="form-group"><label for="inputCtr">Nº CTR</label><input type="number" id="inputCtr" required></div>
+                                <div class="form-group"><label for="inputValor">Valor da Cobrança (R$)</label><input type="number" step="0.01" id="inputValor" required></div>
+                                <div class="form-group"><label for="inputDataInicio">Data Vencimento</label><input type="date" id="inputDataInicio" required></div>
+                                <div class="form-group"><label for="selectFrequencia">Frequencia de reagendamento</label><select id="selectFrequencia"><option value="unico">Sem Reagendamento</option><option value="diario">Diário</option><option value="semanal">Semanal</option><option value="mensal">Mensal</option></select></div>
+                                <div class="form-group form-group-obs"><label for="inputObservacao">Observação</label><textarea id="inputObservacao" rows="1"></textarea></div>
+                            </div>
+                            <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Lançamento</button>
+                        </form>
+                    </main>
+                    <section class="data-table-container">
+                        <div class="table-header">
+                            <h2>Equipamentos Locados</h2>
+                            <button id="btnVerificarVencimentosHoje" class="action-button secondary"><i data-lucide="calendar-check"></i> Verificar Vencimentos do Dia</button>
+                        </div>
+                        <div class="table-filters">
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterCliente" placeholder="Filtrar por cliente..."></div>
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterEquipamento" placeholder="Filtrar por equipamento..."></div>
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterFornecedor" placeholder="Filtrar por fornecedor..."></div>
+                            <div class="filter-group"><i data-lucide="user" class="filter-icon"></i><input type="text" id="filterFuncionario" placeholder="Filtrar por funcionário..."></div>
+                            <div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filterStatus"><option value="all">Todos os Status</option><option value="Locado">Locado</option><option value="Parcial">Parcial</option></select></div>
+                        </div>
+                        <div class="table-wrapper">
+                             <table>
+                                <thead>
+                                    <tr><th>Cliente</th><th>Equipamento</th><th>Fornecedor</th><th>Funcionário</th><th>CTR</th><th>Valor</th><th>Próximo Venc.</th><th>Frequência</th><th>Status</th><th>Ações</th></tr>
+                                </thead>
+                                <tbody id="dataTableBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <div id="employee-list-view" class="view">
+                <div class="container">
+                    <div class="view-header">
+                        <a href="#" class="back-button"><i data-lucide="arrow-left"></i> Voltar</a>
+                        <h1>Lista de Funcionários</h1>
+                    </div>
+                    <div class="data-table-container">
+                        <div class="table-filters">
+                            <div class="filter-group">
+                                <i data-lucide="search" class="filter-icon"></i>
+                                <input type="text" id="filterEmployeeList" placeholder="Filtrar por nome do funcionário...">
+                            </div>
+                        </div>
+                        <div id="employee-list-container" class="list-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="employee-detail-view" class="view">
+                 <header class="detail-header">
+                    <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1 id="employee-detail-title"></h1>
+                        <p>Relatório de Lançamentos</p>
+                    </div>
+                </header>
+                <div class="container">
+                    <div class="table-wrapper card-view">
+                         <table id="employee-detail-table">
+                            <thead>
+                                <tr><th>Cliente</th><th>Equipamento</th><th>Fornecedor</th><th>CTR</th><th>Valor</th><th>Próximo Venc.</th><th>Frequência</th><th>Status</th><th>Observação</th></tr>
+                            </thead>
+                            <tbody id="employeeDetailTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="dashboard-view" class="view">
+                <header class="detail-header">
+                    <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1>Dashboard</h1>
+                        <p>Visualização completa de todos os lançamentos.</p>
+                    </div>
+                </header>
+                <div class="container">
+                    <section class="data-table-container">
+                         <div class="table-filters">
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterClienteDashboard" placeholder="Filtrar por cliente..."></div>
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterEquipamentoDashboard" placeholder="Filtrar por equipamento..."></div>
+                            <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterFornecedorDashboard" placeholder="Filtrar por fornecedor..."></div>
+                            <div class="filter-group"><i data-lucide="user" class="filter-icon"></i><input type="text" id="filterFuncionarioDashboard" placeholder="Filtrar por funcionário..."></div>
+                            <div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filterStatusDashboard"><option value="all">Todos os Status</option><option value="Locado">Locado</option><option value="Parcial">Parcial</option></select></div>
+                        </div>
+                        <div class="table-wrapper card-view">
+                             <table id="dashboard-table">
+                                <thead>
+                                    <tr><th>Cliente</th><th>Equipamento</th><th>Fornecedor</th><th>Funcionário</th><th>CTR</th><th>Valor</th><th>Próximo Venc.</th><th>Frequência</th><th>Status</th><th>Observação</th></tr>
+                                </thead>
+                                <tbody id="dashboardTableBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <div id="genericModal" class="modal"><div class="modal-content"><span class="close-button" id="genericModalClose">&times;</span><h2 id="modalTitle"></h2><form id="modalForm"><div id="modalFields"></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar</button></form></div></div>
+            <div id="statusModal" class="modal"><div class="modal-content"><h2 id="statusModalTitle">Alterar Status</h2><p>Qual o novo status para este item?</p><div class="status-modal-actions"><button id="btnStatusParcial" class="action-button warning"><i data-lucide="package-open"></i> Devolução Parcial</button><button id="btnStatusCompleto" class="action-button danger"><i data-lucide="package-check"></i> Devolução Completa</button><button id="btnStatusCancelar" class="action-button secondary"><i data-lucide="x"></i> Cancelar</button></div></div></div>
+            <div id="vencimentosModal" class="modal"><div class="modal-content large"><span class="close-button" id="vencimentosModalClose">&times;</span><h2>Ações de Vencimento</h2><p>Os seguintes itens venceram hoje. Selecione uma ação para cada um:</p><div id="vencimentosList" class="vencimentos-list"></div><div class="modal-actions-footer"><button id="btnConfirmarAcoesVencimento" class="btn-submit"><i data-lucide="check-square"></i> Confirmar Ações</button></div></div></div>
+            <div id="employeeDueModal" class="modal">
+                <div class="modal-content large">
+                    <span class="close-button" id="employeeDueModalClose">&times;</span>
+                    <h2><i data-lucide="alert-triangle"></i> Itens Próximos do Vencimento</h2>
+                    <p>Os seguintes itens sob sua responsabilidade estão próximos da data de vencimento:</p>
+                    <div id="employeeDueList" class="vencimentos-list"></div>
+                    <p class="modal-footer-note">Por favor, verifique a necessidade de renovação ou agende a devolução dos equipamentos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wrapper para o App de Controle de Estoque -->
+    <div id="stock-control-wrapper" class="top-level-view">
+        <div id="stock-password-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>Acesso ao Controle de Estoque</h2>
+                <p>Por favor, digite a senha para continuar.</p>
+                <form id="stock-password-form">
+                    <div class="form-group">
+                        <label for="stock-password-input">Senha</label>
+                        <input type="password" id="stock-password-input" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Entrar</button>
+                    <p id="stock-password-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+        <div id="stock-app-container">
+            <div class="container">
+                <header>
+                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                    <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1>Controle de Estoque</h1>
+                        <p>Gerenciamento de materiais e ferramentas.</p>
+                    </div>
+                </header>
+                <section class="actions-container">
+                    <button id="btn-add-stock-item" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Item</button>
+                </section>
+                <section class="data-table-container">
+                    <div class="table-header">
+                        <h2>Itens em Estoque</h2>
+                    </div>
+                    <div class="table-filters">
+                        <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-stock-name" placeholder="Filtrar por nome..."></div>
+                        <div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-stock-code" placeholder="Filtrar por código..."></div>
+                        <div class="filter-group"><i data-lucide="tag" class="filter-icon"></i><input type="text" id="filter-stock-category" placeholder="Filtrar por categoria..."></div>
+                    </div>
+                    <div class="table-wrapper">
+                         <table>
+                            <thead>
+                                <tr><th>Item</th><th>Código</th><th>Categoria</th><th>Qtd. Atual</th><th>Unidade</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="stock-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <div id="stock-item-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" id="stock-item-modal-close">&times;</span>
+                <h2 id="stock-item-modal-title">Adicionar Novo Item</h2>
+                <form id="stock-item-form">
+                    <input type="hidden" id="stock-item-id">
+                    <div class="form-grid">
+                        <div class="form-group"><label for="stock-item-name">Nome do Item</label><input type="text" id="stock-item-name" required></div>
+                        <div class="form-group"><label for="stock-item-code">Código/SKU</label><input type="text" id="stock-item-code"></div>
+                        <div class="form-group"><label for="stock-item-category">Categoria</label><input type="text" id="stock-item-category"></div>
+                        <div class="form-group"><label for="stock-item-quantity">Quantidade Inicial</label><input type="number" id="stock-item-quantity" required></div>
+                        <div class="form-group"><label for="stock-item-unit">Unidade (Ex: un, kg, m)</label><input type="text" id="stock-item-unit" value="un" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Item</button>
+                </form>
+            </div>
+        </div>
+        <div id="stock-movement-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" id="stock-movement-modal-close">&times;</span>
+                <h2 id="stock-movement-modal-title">Registrar Movimentação</h2>
+                <form id="stock-movement-form">
+                    <input type="hidden" id="stock-movement-item-id">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="movement-type">Tipo de Movimentação</label>
+                            <select id="movement-type">
+                                <option value="saida">Saída</option>
+                                <option value="entrada">Entrada</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="movement-quantity">Quantidade</label>
+                            <input type="number" id="movement-quantity" required min="1">
+                        </div>
+                    </div>
+                     <div class="form-group">
+                        <label for="movement-notes">Observação / Destino</label>
+                        <textarea id="movement-notes" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wrapper para o App de Controle de Carros -->
+    <div id="car-control-wrapper" class="top-level-view">
+        <div id="car-password-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>Acesso ao Controle de Veículos</h2>
+                <p>Por favor, digite a senha para continuar.</p>
+                <form id="car-password-form">
+                    <div class="form-group">
+                        <label for="car-password-input">Senha</label>
+                        <input type="password" id="car-password-input" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Entrar</button>
+                    <p id="car-password-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+        <div id="car-app-container">
+            <div class="container">
+                 <header>
+                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                    <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1>Controle de Veículos</h1>
+                        <p>Gerenciamento de frota e manutenção preventiva.</p>
+                    </div>
+                </header>
+                <section class="actions-container">
+                    <button id="btn-add-car" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Veículo</button>
+                </section>
+                 <section class="data-table-container">
+                    <div class="table-header">
+                        <h2>Frota de Veículos</h2>
+                    </div>
+                    <div class="table-filters">
+                        <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-car-name" placeholder="Filtrar por veículo..."></div>
+                        <div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-car-plate" placeholder="Filtrar por placa..."></div>
+                    </div>
+                    <div class="table-wrapper">
+                         <table>
+                            <thead>
+                                <tr><th>Veículo</th><th>Placa</th><th>KM Atual</th><th>Próx. Troca Óleo (KM)</th><th>Data Próx. Óleo</th><th>Próx. Manutenção (KM)</th><th>Data Próx. Man.</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="car-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <div id="car-item-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" id="car-item-modal-close">&times;</span>
+                <h2 id="car-item-modal-title">Adicionar Veículo</h2>
+                <form id="car-item-form">
+                    <input type="hidden" id="car-item-id">
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label for="car-item-name">Veículo (Marca/Modelo)</label><input type="text" id="car-item-name" required></div>
+                        <div class="form-group"><label for="car-item-plate">Placa</label><input type="text" id="car-item-plate" required></div>
+                        <div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button>
+                </form>
+            </div>
+        </div>
+        <div id="car-update-km-modal" class="modal">
+             <div class="modal-content">
+                <span class="close-button" id="car-update-km-modal-close">&times;</span>
+                <h2 id="car-update-km-modal-title">Atualizar KM</h2>
+                <form id="car-update-km-form">
+                    <input type="hidden" id="car-update-km-id">
+                    <div class="form-grid">
+                         <div class="form-group"><label for="car-update-km-input">Nova Quilometragem</label><input type="number" id="car-update-km-input" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="check"></i> Atualizar</button>
+                </form>
+            </div>
+        </div>
+        <div id="car-maintenance-modal" class="modal">
+             <div class="modal-content large">
+                <span class="close-button" id="car-maintenance-modal-close">&times;</span>
+                <h2 id="car-maintenance-modal-title">Registrar Manutenção</h2>
+                <form id="car-maintenance-form">
+                    <input type="hidden" id="car-maintenance-id">
+                    <div class="form-group full-width">
+                        <label for="car-maintenance-type">Tipo de Serviço Realizado</label>
+                        <input type="text" id="car-maintenance-type" required placeholder="Ex: Troca de óleo e filtro, Revisão dos freios...">
+                    </div>
+                    <div class="form-grid">
+                         <div class="form-group"><label for="car-maintenance-km">KM do Serviço</label><input type="number" id="car-maintenance-km" required></div>
+                         <div class="form-group"></div>
+                         <div class="form-group"><label for="car-next-oil-km">Próx. Troca Óleo (KM)</label><input type="number" id="car-next-oil-km"></div>
+                         <div class="form-group"><label for="car-next-oil-date">Data Próx. Troca Óleo</label><input type="date" id="car-next-oil-date"></div>
+                         <div class="form-group"><label for="car-next-maintenance-km">Próx. Manutenção (KM)</label><input type="number" id="car-next-maintenance-km"></div>
+                         <div class="form-group"><label for="car-next-maintenance-date">Data Próx. Manutenção</label><input type="date" id="car-next-maintenance-date"></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="save"></i> Registrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wrapper para o App de Controle de Ferramentas (NOVO) -->
+    <div id="tool-control-wrapper" class="top-level-view">
+        <div id="tool-password-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>Acesso ao Controle de Ferramentas</h2>
+                <p>Por favor, digite a senha para continuar.</p>
+                <form id="tool-password-form">
+                    <div class="form-group">
+                        <label for="tool-password-input">Senha</label>
+                        <input type="password" id="tool-password-input" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Entrar</button>
+                    <p id="tool-password-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+        <div id="tool-app-container">
+            <div class="container">
+                 <header>
+                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                    <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1>Controle de Ferramentas</h1>
+                        <p>Gerenciamento de ferramentas elétricas e manuais.</p>
+                    </div>
+                </header>
+                <section class="actions-container">
+                    <button id="btn-add-tool" class="action-button"><i data-lucide="plus"></i> Adicionar Nova Ferramenta</button>
+                </section>
+                 <section class="data-table-container">
+                    <div class="table-header">
+                        <h2>Inventário de Ferramentas</h2>
+                    </div>
+                    <div class="table-filters">
+                        <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-tool-name" placeholder="Filtrar por nome..."></div>
+                        <div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-tool-code" placeholder="Filtrar por código..."></div>
+                        <div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filter-tool-status"><option value="all">Todos os Status</option><option value="Disponível">Disponível</option><option value="Em Uso">Em Uso</option><option value="Em Manutenção">Em Manutenção</option></select></div>
+                    </div>
+                    <div class="table-wrapper">
+                         <table>
+                            <thead>
+                                <tr><th>Ferramenta</th><th>Código</th><th>Status</th><th>Local/Responsável</th><th>Próx. Manutenção</th><th>Ações</th></tr>
+                            </thead>
+                            <tbody id="tool-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <div id="tool-item-modal" class="modal">
+             <div class="modal-content large">
+                <span class="close-button" id="tool-item-modal-close">&times;</span>
+                <h2 id="tool-item-modal-title">Adicionar Ferramenta</h2>
+                <form id="tool-item-form">
+                    <input type="hidden" id="tool-item-id">
+                    <div class="form-grid">
+                        <div class="form-group"><label for="tool-item-name">Nome</label><input type="text" id="tool-item-name" required></div>
+                        <div class="form-group"><label for="tool-item-brand">Marca</label><input type="text" id="tool-item-brand"></div>
+                        <div class="form-group"><label for="tool-item-model">Modelo</label><input type="text" id="tool-item-model"></div>
+                        <div class="form-group"><label for="tool-item-code">Código / Nº Série</label><input type="text" id="tool-item-code"></div>
+                        <div class="form-group"><label for="tool-item-buy-date">Data da Compra</label><input type="date" id="tool-item-buy-date"></div>
+                        <div class="form-group"><label for="tool-item-value">Valor (R$)</label><input type="number" step="0.01" id="tool-item-value"></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Ferramenta</button>
+                </form>
+            </div>
+        </div>
+         <div id="tool-assign-modal" class="modal">
+             <div class="modal-content">
+                <span class="close-button" id="tool-assign-modal-close">&times;</span>
+                <h2 id="tool-assign-modal-title">Retirar Ferramenta</h2>
+                <form id="tool-assign-form">
+                    <input type="hidden" id="tool-assign-id">
+                    <div class="form-grid">
+                         <div class="form-group"><label for="tool-assign-employee">Funcionário Responsável</label><select id="tool-assign-employee" required></select></div>
+                         <div class="form-group"><label for="tool-assign-project">Obra de Destino</label><select id="tool-assign-project" required></select></div>
+                         <div class="form-group"><label for="tool-assign-date">Data de Retirada</label><input type="date" id="tool-assign-date" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar Retirada</button>
+                </form>
+            </div>
+        </div>
+        <div id="tool-maintenance-modal" class="modal">
+             <div class="modal-content">
+                <span class="close-button" id="tool-maintenance-modal-close">&times;</span>
+                <h2 id="tool-maintenance-modal-title">Manutenção da Ferramenta</h2>
+                <form id="tool-maintenance-form">
+                    <input type="hidden" id="tool-maintenance-id">
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label for="tool-maintenance-status">Status</label>
+                            <select id="tool-maintenance-status">
+                                <option value="Em Manutenção">Enviar para Manutenção</option>
+                                <option value="Disponível">Retornou da Manutenção</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label for="tool-maintenance-next-date">Data da Próxima Manutenção</label><input type="date" id="tool-maintenance-next-date"></div>
+                        <div class="form-group"><label for="tool-maintenance-notes">Observações</label><textarea id="tool-maintenance-notes" rows="3"></textarea></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i data-lucide="save"></i> Atualizar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
