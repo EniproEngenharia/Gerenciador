@@ -651,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const updateKmForm = document.getElementById('car-update-km-form');
         const maintenanceForm = document.getElementById('car-maintenance-form');
 
-        const carTableBody = document.getElementById('car-table-body');
+        const carCardContainer = document.getElementById('car-card-container');
         const filterCarName = document.getElementById('filter-car-name');
         const filterCarPlate = document.getElementById('filter-car-plate');
 
@@ -671,7 +671,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 modal.querySelector('#car-item-driver').value = data.condutor || '';
                 modal.querySelector('#car-item-license').value = data.licenciamento || '';
                 modal.querySelector('#car-item-renavan').value = data.renavan || '';
-                modal.querySelector('#car-item-km').disabled = !!data.id;
             } else if (modalId === 'car-update-km-modal') {
                  modal.querySelector('#car-update-km-modal-title').textContent = `Atualizar KM de ${data.nome}`;
                  modal.querySelector('#car-update-km-id').value = data.id || '';
@@ -752,46 +751,75 @@ document.addEventListener('DOMContentLoaded', function () {
             carRef.child(id).update(updates).then(closeCarModals);
         });
 
-        const renderCarTable = () => {
+        const renderCarCards = () => {
             const nameQuery = filterCarName.value.toLowerCase();
             const plateQuery = filterCarPlate.value.toLowerCase();
-            carTableBody.innerHTML = '';
+            carCardContainer.innerHTML = '';
             
             Object.entries(carItemsData).filter(([_, car]) => {
                 return (car.nome || '').toLowerCase().includes(nameQuery) && (car.placa || '').toLowerCase().includes(plateQuery);
             }).forEach(([id, car]) => {
-                let rowClass = '';
+                const indicators = [];
                 const kmAlertThreshold = 1000;
-                const dateAlertThreshold = 15 * 24 * 60 * 60 * 1000; // 15 dias
+                const dateAlertThreshold = 30 * 24 * 60 * 60 * 1000; // 30 dias
 
-                if (car.proximaTrocaOleoKM && car.kmAtual >= (car.proximaTrocaOleoKM - kmAlertThreshold)) { rowClass = 'maintenance-due'; }
-                if (car.proximaTrocaOleoData && (new Date(car.proximaTrocaOleoData + "T00:00:00") - new Date()) < dateAlertThreshold) { rowClass = 'maintenance-due'; }
-                if (car.proximaManutencaoKM && car.kmAtual >= (car.proximaManutencaoKM - kmAlertThreshold)) { rowClass = 'maintenance-due'; }
-                if (car.proximaManutencaoData && (new Date(car.proximaManutencaoData + "T00:00:00") - new Date()) < dateAlertThreshold) { rowClass = 'maintenance-due'; }
-
-                const formatDate = (dateString) => dateString ? new Date(dateString + 'T03:00:00Z').toLocaleDateString('pt-BR') : '-';
+                if (car.proximaTrocaOleoKM) {
+                    if (car.kmAtual >= car.proximaTrocaOleoKM) {
+                        indicators.push('<div class="indicator-bar indicator-oil-danger" title="Troca de óleo vencida"></div>');
+                    } else if (car.kmAtual >= car.proximaTrocaOleoKM - kmAlertThreshold) {
+                        indicators.push('<div class="indicator-bar indicator-oil-warning" title="Troca de óleo próxima"></div>');
+                    }
+                }
+                
+                if (car.licenciamento) {
+                    const licenseDate = new Date(car.licenciamento);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const timeDiff = licenseDate - today;
+                    
+                    if (timeDiff < 0) {
+                         indicators.push('<div class="indicator-bar indicator-license-danger" title="Licenciamento vencido"></div>');
+                    } else if (timeDiff < dateAlertThreshold) {
+                         indicators.push('<div class="indicator-bar indicator-license-warning" title="Licenciamento próximo"></div>');
+                    }
+                }
+                
                 const formatKm = (km) => km ? km.toLocaleString('pt-BR') : '-';
-
-                const row = carTableBody.insertRow();
-                row.className = rowClass;
-                row.innerHTML = `
-                    <td data-label="Veículo">${car.nome || 'N/A'}</td>
-                    <td data-label="Placa">${car.placa || 'N/A'}</td>
-                    <td data-label="KM Atual">${formatKm(car.kmAtual)}</td>
-                    <td data-label="C/C">${car.cc || 'N/A'}</td>
-                    <td data-label="Condutor">${car.condutor || 'N/A'}</td>
-                    <td data-label="Licenciamento">${car.licenciamento || 'N/A'}</td>
-                    <td data-label="Renavan">${car.renavan || 'N/A'}</td>
-                    <td data-label="Próx. Óleo (KM)">${formatKm(car.proximaTrocaOleoKM)}</td>
-                    <td data-label="Data Próx. Óleo">${formatDate(car.proximaTrocaOleoData)}</td>
-                    <td data-label="Próx. Man. (KM)">${formatKm(car.proximaManutencaoKM)}</td>
-                    <td data-label="Data Próx. Man.">${formatDate(car.proximaManutencaoData)}</td>
-                    <td data-label="Ações">
-                        <button class="btn-status btn-edit-car" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                        <button class="btn-status btn-update-km" data-id="${id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i></button>
-                        <button class="btn-status btn-add-maintenance" data-id="${id}" title="Registrar Manutenção"><i data-lucide="wrench"></i></button>
-                    </td>
+                const formatDate = (dateString) => {
+                    if (!dateString) return '-';
+                    // Adiciona um dia à data para corrigir problemas de fuso horário na exibição
+                    const date = new Date(dateString);
+                    date.setDate(date.getDate() + 1);
+                    return date.toLocaleDateString('pt-BR');
+                };
+                
+                const card = document.createElement('div');
+                card.className = 'car-card';
+                card.innerHTML = `
+                    <div class="status-indicators">
+                        ${indicators.join('')}
+                    </div>
+                    <div class="car-card-content">
+                        <div class="car-card-header">
+                            <h3>${car.nome || 'N/A'}</h3>
+                            <p>${car.placa || 'N/A'}</p>
+                        </div>
+                        <div class="car-card-body">
+                            <div class="car-card-item"><strong>KM Atual:</strong> ${formatKm(car.kmAtual)}</div>
+                            <div class="car-card-item"><strong>Condutor:</strong> ${car.condutor || '-'}</div>
+                            <div class="car-card-item"><strong>C/C:</strong> ${car.cc || '-'}</div>
+                            <div class="car-card-item"><strong>Renavan:</strong> ${car.renavan || '-'}</div>
+                            <div class="car-card-item"><strong>Licenciamento:</strong> ${formatDate(car.licenciamento)}</div>
+                            <div class="car-card-item"><strong>Próx. Óleo (KM):</strong> ${formatKm(car.proximaTrocaOleoKM)}</div>
+                        </div>
+                        <div class="car-card-footer">
+                            <button class="btn-status btn-edit-car" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                            <button class="btn-status btn-update-km" data-id="${id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i></button>
+                            <button class="btn-status btn-add-maintenance" data-id="${id}" title="Registrar Manutenção"><i data-lucide="wrench"></i></button>
+                        </div>
+                    </div>
                 `;
+                carCardContainer.appendChild(card);
             });
             lucide.createIcons();
         };
@@ -800,13 +828,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = snapshot.val() || {};
             carItemsData = {};
             Object.keys(data).forEach(key => carItemsData[key] = { ...data[key], id: key });
-            renderCarTable();
+            renderCarCards();
         });
 
-        filterCarName.addEventListener('input', renderCarTable);
-        filterCarPlate.addEventListener('input', renderCarTable);
+        filterCarName.addEventListener('input', renderCarCards);
+        filterCarPlate.addEventListener('input', renderCarCards);
 
-        carTableBody.addEventListener('click', (e) => {
+        carCardContainer.addEventListener('click', (e) => {
             const button = e.target.closest('.btn-status');
             if(!button) return;
 

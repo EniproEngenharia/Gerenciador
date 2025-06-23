@@ -460,7 +460,7 @@
         .filter-icon {
             position: absolute;
             left: 14px;
-            color: var(--secondary-color);
+            color: var(--text-secondary);
             width: 18px;
             height: 18px;
         }
@@ -806,7 +806,6 @@
         #stock-movement-modal .form-grid, #car-update-km-modal .form-grid, #stock-item-modal .form-grid, #tool-item-modal .form-grid, #tool-assign-modal .form-grid, #car-item-modal .form-grid {
             grid-template-columns: 1fr;
         }
-
          #car-maintenance-modal .form-grid {
             grid-template-columns: 1fr 1fr;
         }
@@ -829,8 +828,8 @@
         .status-dot-red { background-color: var(--danger-color); }
 
         td[data-label="Status"] div {
-            display: flex;
-            align-items: center;
+             display: flex;
+             align-items: center;
         }
 
         #tool-history-log .history-item {
@@ -847,6 +846,87 @@
             color: var(--text-secondary);
         }
         
+        /* Estilos para Cards de Carros */
+        .car-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .car-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+        }
+
+        .car-card .status-indicators {
+            display: flex;
+            flex-direction: column;
+            width: 6px;
+        }
+        
+        .car-card .indicator-bar {
+            flex-grow: 1;
+        }
+        
+        .car-card .indicator-oil-warning { background-color: var(--warning-color); }
+        .car-card .indicator-oil-danger { background-color: var(--danger-color); }
+        .car-card .indicator-license-warning { background-color: var(--warning-color); }
+        .car-card .indicator-license-danger { background-color: var(--danger-color); }
+
+        .car-card-content {
+            flex-grow: 1;
+        }
+        
+        .car-card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .car-card-header h3 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .car-card-header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .car-card-body {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .car-card-item {
+            font-size: 0.95rem;
+        }
+        
+        .car-card-item strong {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .car-card-footer {
+            padding: 1rem 1.5rem;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
         @media (min-width: 769px) {
             .form-grid { grid-template-columns: repeat(3, 1fr); }
             #car-item-modal .form-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1289,13 +1369,8 @@
                         <div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-car-name" placeholder="Filtrar por veículo..."></div>
                         <div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-car-plate" placeholder="Filtrar por placa..."></div>
                     </div>
-                    <div class="table-wrapper">
-                         <table>
-                            <thead>
-                                <tr><th>Veículo</th><th>Placa</th><th>KM Atual</th><th>C/C</th><th>Condutor</th><th>Licenciamento</th><th>Renavan</th><th>Próx. Troca Óleo (KM)</th><th>Data Próx. Óleo</th><th>Próx. Manutenção (KM)</th><th>Data Próx. Man.</th><th>Ações</th></tr>
-                            </thead>
-                            <tbody id="car-table-body"></tbody>
-                        </table>
+                    <div id="car-card-container" class="car-card-grid">
+                        <!-- Os cards dos carros serão inseridos aqui pelo JS -->
                     </div>
                 </section>
             </div>
@@ -1312,7 +1387,7 @@
                         <div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div>
                         <div class="form-group"><label for="car-item-cc">C/C</label><input type="text" id="car-item-cc"></div>
                         <div class="form-group"><label for="car-item-driver">Condutor</label><input type="text" id="car-item-driver"></div>
-                        <div class="form-group"><label for="car-item-license">Licenciamento</label><input type="text" id="car-item-license"></div>
+                        <div class="form-group"><label for="car-item-license">Licenciamento</label><input type="date" id="car-item-license"></div>
                         <div class="form-group"><label for="car-item-renavan">Renavan</label><input type="text" id="car-item-renavan"></div>
                     </div>
                     <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button>
