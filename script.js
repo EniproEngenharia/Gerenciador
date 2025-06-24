@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- LÓGICA DE TEMA (MODO NOTURNO) ---
     const themeToggle = document.getElementById('theme-toggle');
     const body = document.body;
-
     const applyTheme = (theme) => {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
@@ -14,16 +13,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         lucide.createIcons();
     };
-
     themeToggle.addEventListener('click', () => {
         const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
         localStorage.setItem('theme', newTheme);
         applyTheme(newTheme);
     });
-
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     applyTheme(savedTheme);
-
 
     // --- INICIALIZAÇÃO DO FIREBASE (GLOBAL) ---
     const firebaseConfig = { apiKey: "AIzaSyD8sNfGilLum2rnN7Qt1fBRP4ONhzemWNE", authDomain: "guilherme-2a3f3.firebaseapp.com", projectId: "guilherme-2a3f3", storageBucket: "guilherme-2a3f3.firebasestorage.app", messagingSenderId: "60682599861", appId: "1:60682599861:web:c74a9aaa7651d14cbd2dfc", measurementId: "G-MZSHRPP56K" };
@@ -32,138 +28,537 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const database = firebase.database();
 
-
     // --- REFERÊNCIAS GLOBAIS DO DOM ---
+    const allTopLevelViews = document.querySelectorAll('.top-level-view');
     const serviceSelectionView = document.getElementById('service-selection-view');
-    const rentalAppWrapper = document.getElementById('rental-app-wrapper');
-    const stockControlWrapper = document.getElementById('stock-control-wrapper');
-    const carControlWrapper = document.getElementById('car-control-wrapper');
-    const toolControlWrapper = document.getElementById('tool-control-wrapper');
-
-    const btnGoToRentals = document.getElementById('btn-go-to-rentals');
-    const btnGoToStock = document.getElementById('btn-go-to-stock');
-    const btnGoToCars = document.getElementById('btn-go-to-cars');
-    const btnGoToTools = document.getElementById('btn-go-to-tools');
+    
+    const adminAppWrapper = document.getElementById('admin-app-wrapper');
+    const adminMainContainer = document.getElementById('admin-main-container');
+    const adminSystemViewContainer = document.getElementById('admin-system-view-container');
+    
+    const employeeAreaWrapper = document.getElementById('employee-area-wrapper');
+    const employeeLoginView = document.getElementById('employee-login-view');
+    const employeeDashboardView = document.getElementById('employee-dashboard-view');
+    
+    const btnGoToAdmin = document.getElementById('btn-go-to-admin');
+    const btnGoToEmployeeArea = document.getElementById('btn-go-to-employee-area');
     const backToServicesButtons = document.querySelectorAll('.back-to-services-button');
-    
-    let rentalAppInitialized = false;
-    let stockAppInitialized = false;
-    let carAppInitialized = false;
-    let toolAppInitialized = false;
+    const logoutButton = document.querySelector('.logout-button');
 
+    // Estado da Aplicação
+    let funcionariosData = {};
+    let activeSystemCleanup = () => {};
 
-    // --- GERENCIADOR DE VIEWS PRINCIPAIS ---
-    const showTopLevelView = (viewId) => {
-        document.querySelectorAll('.top-level-view').forEach(v => v.style.display = 'none');
-        
-        const viewToShow = document.getElementById(viewId);
+    // --- LISTENERS DE MODAIS GLOBAIS ---
+    document.getElementById('car-update-km-modal-close').addEventListener('click', () => {
+        document.getElementById('car-update-km-modal').style.display = 'none';
+    });
+
+    // --- CARREGAMENTO DE DADOS GLOBAIS ---
+    function loadEmployeeData() {
+        const ref = database.ref('funcionarios');
+        ref.on('value', snapshot => {
+            funcionariosData = snapshot.val() || {};
+            renderEmployeeManagementTable();
+            populateEmployeeLoginDropdown();
+        });
+    }
+
+    // --- GERENCIADOR DE VIEWS ---
+    function showTopLevelView(viewIdToShow) {
+        allTopLevelViews.forEach(view => {
+            view.style.display = 'none';
+        });
+        const viewToShow = document.getElementById(viewIdToShow);
         if (viewToShow) {
-            viewToShow.style.display = (viewId === 'service-selection-view') ? 'flex' : 'block';
+            viewToShow.style.display = (viewIdToShow === 'service-selection-view') ? 'flex' : 'block';
         }
-    };
-    
-    // --- LÓGICA DO APP DE GERENCIAMENTO DE OBRAS ---
-    const initializeRentalApp = () => {
-        const passwordModal = document.getElementById('password-modal');
-        const passwordForm = document.getElementById('password-form');
-        const passwordInput = document.getElementById('password-input');
-        const passwordError = document.getElementById('password-error');
-        const appContainer = document.getElementById('app-container');
-        
-        const handlePasswordSubmit = (e) => {
-            e.preventDefault();
-            if (passwordInput.value === 'admin1234') {
-                sessionStorage.setItem('isAuthenticatedRental', 'true');
-                passwordModal.style.display = 'none';
-                appContainer.style.display = 'block';
-                if (!rentalAppInitialized) {
-                    runRentalAppLogic();
+    }
+
+    function showAdminSubView(subViewName, systemKey = null) {
+        activeSystemCleanup(); 
+
+        if (subViewName === 'main') {
+            adminMainContainer.style.display = 'block';
+            adminSystemViewContainer.style.display = 'none';
+            adminSystemViewContainer.innerHTML = '';
+        } else if (subViewName === 'system' && systemKey) {
+            const templateDiv = document.querySelector(`#system-templates [data-template="${systemKey}"]`);
+            if (templateDiv) {
+                adminSystemViewContainer.innerHTML = templateDiv.innerHTML;
+                adminMainContainer.style.display = 'none';
+                adminSystemViewContainer.style.display = 'block';
+
+                switch(systemKey) {
+                    case 'rental': activeSystemCleanup = runRentalAppLogic(); break;
+                    case 'stock': activeSystemCleanup = runStockControlLogic(); break;
+                    case 'car': activeSystemCleanup = runCarControlLogic(); break;
+                    case 'tool': activeSystemCleanup = runToolControlLogic(); break;
                 }
+                 const backToAdminBtn = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
+                 if(backToAdminBtn) {
+                     backToAdminBtn.addEventListener('click', () => showAdminSubView('main'));
+                 }
             } else {
-                passwordError.textContent = 'Senha incorreta.';
-                passwordInput.value = '';
+                console.error(`Template do sistema não encontrado: ${systemKey}`);
+                showAdminSubView('main');
+            }
+        }
+    }
+
+    // --- NAVEGAÇÃO PRINCIPAL E SESSÃO ---
+    const goHome = () => {
+        showAdminSubView('main');
+        showTopLevelView('service-selection-view');
+        employeeLoginView.style.display = 'block';
+        employeeDashboardView.style.display = 'none';
+        document.getElementById('employee-login-form').reset();
+    };
+
+    btnGoToAdmin.addEventListener('click', () => {
+        showTopLevelView('admin-app-wrapper');
+        initializeAdminApp();
+    });
+
+    btnGoToEmployeeArea.addEventListener('click', () => {
+        showTopLevelView('employee-area-wrapper');
+        initializeEmployeeArea();
+    });
+
+    backToServicesButtons.forEach(button => button.addEventListener('click', goHome));
+    logoutButton.addEventListener('click', goHome);
+
+    // --- ÁREA DO ADMIN ---
+    function initializeAdminApp() {
+        showAdminSubView('main');
+        renderEmployeeManagementTable();
+    }
+    
+    function populateEmployeeLoginDropdown() {
+        const employeeSelect = document.getElementById('employee-select-login');
+        if(!employeeSelect) return;
+        const currentVal = employeeSelect.value;
+        employeeSelect.innerHTML = '<option value="">Selecione o seu nome</option>';
+        if (funcionariosData && Object.keys(funcionariosData).length > 0) {
+            Object.keys(funcionariosData).forEach(id => {
+                employeeSelect.innerHTML += `<option value="${id}">${funcionariosData[id].nome}</option>`;
+            });
+        } else {
+            employeeSelect.innerHTML = '<option value="">Nenhum funcionário encontrado</option>';
+        }
+        employeeSelect.value = currentVal;
+    }
+
+    function renderEmployeeManagementTable() {
+        const tableBody = document.getElementById('admin-employee-table-body');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        if (funcionariosData) {
+            Object.keys(funcionariosData).forEach(id => {
+                const funcionario = funcionariosData[id];
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td data-label="Funcionário">${funcionario.nome}</td>
+                    <td data-label="Ações">
+                        <button class="action-button secondary btn-edit-permissions" data-id="${id}">
+                            <i data-lucide="key-round"></i> Editar Acessos
+                        </button>
+                    </td>
+                `;
+            });
+        }
+        lucide.createIcons();
+        
+        document.querySelectorAll('.btn-edit-permissions').forEach(btn => {
+            btn.onclick = (e) => openPermissionModal(e.currentTarget.dataset.id);
+        });
+    }
+
+    function openPermissionModal(employeeId) {
+        const modal = document.getElementById('employee-permission-modal');
+        const title = document.getElementById('employee-permission-title');
+        const form = document.getElementById('employee-permission-form');
+        const checkboxesContainer = document.getElementById('permissions-checkboxes');
+        
+        const employee = funcionariosData[employeeId];
+        title.textContent = `Editar Acessos de: ${employee.nome}`;
+        document.getElementById('permission-employee-id').value = employeeId;
+        form.reset();
+
+        const permissions = employee.permissions || {};
+        const allPermissions = {
+            canViewRentals: "Ver Gerenciador de Obras",
+            canViewStock: "Ver Controle de Estoque",
+            canViewCars: "Ver Controle de Carros",
+            canViewTools: "Ver Controle de Ferramentas"
+        };
+
+        checkboxesContainer.innerHTML = '';
+        Object.keys(allPermissions).forEach(key => {
+            const checked = permissions[key] ? 'checked' : '';
+            checkboxesContainer.innerHTML += `
+                <div class="form-group">
+                    <label style="flex-direction: row; align-items: center; display: flex; gap: 8px;">
+                        <input type="checkbox" id="perm-${key}" name="${key}" ${checked}>
+                        ${allPermissions[key]}
+                    </label>
+                </div>
+            `;
+        });
+        
+        modal.style.display = 'block';
+    }
+
+    document.getElementById('employee-permission-modal-close').onclick = () => {
+        document.getElementById('employee-permission-modal').style.display = 'none';
+    };
+
+    document.getElementById('employee-permission-form').onsubmit = function(e) {
+        e.preventDefault();
+        const employeeId = document.getElementById('permission-employee-id').value;
+        const newPassword = document.getElementById('permission-employee-password').value;
+        
+        const updates = {};
+        if (newPassword && newPassword.trim() !== '') {
+            updates[`funcionarios/${employeeId}/senha`] = newPassword;
+        }
+
+        const permissions = {};
+        document.querySelectorAll('#permissions-checkboxes input[type="checkbox"]').forEach(cb => {
+            permissions[cb.name] = cb.checked;
+        });
+        updates[`funcionarios/${employeeId}/permissions`] = permissions;
+
+        database.ref().update(updates).then(() => {
+            alert('Acessos atualizados com sucesso!');
+            document.getElementById('employee-permission-modal').style.display = 'none';
+        }).catch(err => {
+            console.error(err);
+            alert('Erro ao atualizar acessos.');
+        });
+    };
+
+    // --- ÁREA DO FUNCIONÁRIO ---
+    function initializeEmployeeArea() {
+        populateEmployeeLoginDropdown();
+        document.getElementById('employee-login-form').onsubmit = function(e) {
+            e.preventDefault();
+            const employeeId = document.getElementById('employee-select-login').value;
+            const password = document.getElementById('employee-password-input').value;
+            const errorP = document.getElementById('employee-login-error');
+
+            if (!employeeId) {
+                errorP.textContent = 'Por favor, selecione o seu nome.';
+                return;
+            }
+
+            const employee = funcionariosData[employeeId];
+            if (employee && employee.senha && employee.senha === password) {
+                sessionStorage.setItem('loggedInEmployeeId', employeeId);
+                employeeLoginView.style.display = 'none';
+                renderEmployeeDashboard(employeeId);
+                employeeDashboardView.style.display = 'block';
+                errorP.textContent = '';
+            } else {
+                errorP.textContent = 'Nome ou senha incorretos.';
             }
         };
-        passwordForm.addEventListener('submit', handlePasswordSubmit);
-
-        if (sessionStorage.getItem('isAuthenticatedRental') === 'true') {
-            passwordModal.style.display = 'none';
-            appContainer.style.display = 'block';
-            if (!rentalAppInitialized) {
-                runRentalAppLogic();
-            }
-        } else {
-            appContainer.style.display = 'none';
-            passwordModal.style.display = 'flex';
-            passwordInput.focus();
-        }
-    };
+    }
     
-    const runRentalAppLogic = () => {
-        if (rentalAppInitialized) return;
-        rentalAppInitialized = true;
+    function createDetailCard({ title, subtitle, details, indicatorClass = '', footerHtml = '' }) {
+        const detailsHtml = Object.entries(details).map(([key, value]) => `
+            <div class="car-card-item" style="font-size: 0.9rem;">
+                <strong style="color: var(--text-primary);">${key}:</strong> 
+                <span style="color: var(--text-secondary);">${value}</span>
+            </div>
+        `).join('');
 
-        const appContainer = document.getElementById('app-container');
+        const indicatorHtml = indicatorClass ? `<div class="status-indicators"><div class="indicator-bar ${indicatorClass}" title="Status"></div></div>` : '';
+        const footerSection = footerHtml ? `<div class="car-card-footer">${footerHtml}</div>` : '';
 
+        return `
+            <div class="car-card">
+                ${indicatorHtml}
+                <div class="car-card-content" style="width: 100%;">
+                    <div class="car-card-header">
+                        <h3>${title}</h3>
+                        <p>${subtitle}</p>
+                    </div>
+                    <div class="car-card-body" style="grid-template-columns: 1fr; gap: 0.75rem;">
+                        ${detailsHtml}
+                    </div>
+                    ${footerSection}
+                </div>
+            </div>
+        `;
+    }
+
+    async function handleEmployeeKmUpdate(carId) {
+        const carSnapshot = await database.ref(`veiculos/${carId}`).once('value');
+        const carData = { ...carSnapshot.val(), id: carId };
+        
+        const updateKmModal = document.getElementById('car-update-km-modal');
+        const updateKmForm = document.getElementById('car-update-km-form');
+        
+        updateKmModal.querySelector('#car-update-km-modal-title').textContent = `Atualizar KM de ${carData.nome}`;
+        updateKmModal.querySelector('#car-update-km-id').value = carId;
+        updateKmForm.reset();
+
+        updateKmForm.onsubmit = (e) => {
+            e.preventDefault();
+            const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
+            if (newKm >= (carData.kmAtual || 0)) {
+                database.ref(`veiculos/${carId}`).update({ kmAtual: newKm }).then(() => {
+                    updateKmModal.style.display = 'none';
+                    renderEmployeeDashboard(sessionStorage.getItem('loggedInEmployeeId')); 
+                });
+            } else {
+                alert('A nova quilometragem deve ser maior ou igual à atual.');
+            }
+        };
+
+        updateKmModal.style.display = 'block';
+    }
+
+    async function renderEmployeeDashboard(employeeId) {
+        const employee = funcionariosData[employeeId];
+        const container = document.getElementById('employee-cards-container');
+        document.getElementById('employee-dashboard-title').textContent = `Bem-vindo(a), ${employee.nome}`;
+        container.innerHTML = '<p>A carregar as suas informações...</p>';
+        
+        const getDueDateStatus = (proximoVencimentoStr) => {
+            if (!proximoVencimentoStr) return '';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+            
+            const vencimento = new Date(proximoVencimentoStr + 'T03:00:00Z');
+            vencimento.setHours(0, 0, 0, 0);
+
+            const diffTime = vencimento.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 3) return 'indicator-due-danger';
+            if (diffDays <= 7) return 'indicator-due-warning';
+            return '';
+        };
+
+        const calcularProximoVencimento = (dataInicioStr, frequencia, reagendamentoAutomatico) => {
+            if (!dataInicioStr || !frequencia || !reagendamentoAutomatico || frequencia === 'unico') return dataInicioStr || null;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            let proximaData = new Date(dataInicioStr + 'T03:00:00Z');
+            while (proximaData < hoje) {
+                if (frequencia === 'diario') proximaData.setDate(proximaData.getDate() + 1);
+                else if (frequencia === 'semanal') proximaData.setDate(proximaData.getDate() + 7);
+                else if (frequencia === 'mensal') proximaData.setMonth(proximaData.getMonth() + 1);
+                else break;
+            }
+            return proximaData.toISOString().split('T')[0];
+        };
+
+        const permissions = employee.permissions || {};
+        let finalHtml = '';
+        let hasContent = false;
+
+        // 1. Locações
+        if (permissions.canViewRentals) {
+            const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
+            const rentalsData = rentalsSnapshot.val() || {};
+            const activeRentals = Object.values(rentalsData).filter(item => item.status !== 'Devolvido');
+            
+            if (activeRentals.length > 0) {
+                hasContent = true;
+                let cardsHtml = '';
+                activeRentals.forEach(item => {
+                    const proximoVencimento = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
+                    const indicatorClass = getDueDateStatus(proximoVencimento);
+                    cardsHtml += createDetailCard({
+                        title: item.equipamentoNome,
+                        subtitle: `Cliente: ${item.clienteNome}`,
+                        details: {
+                            'Nº CTR': item.ctr,
+                            'Próximo Venc.': proximoVencimento ? new Date(proximoVencimento + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'
+                        },
+                        indicatorClass: indicatorClass
+                    });
+                });
+                finalHtml += `
+                    <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
+                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Locações</h2>
+                        <div class="car-card-grid">${cardsHtml}</div>
+                    </section>`;
+            }
+        }
+
+        // 2. Veículos
+        if (permissions.canViewCars) {
+            const carsSnapshot = await database.ref('veiculos').orderByChild('condutor').equalTo(employee.nome).once('value');
+            const carsData = carsSnapshot.val() || {};
+            const userCars = Object.entries(carsData).map(([id, car]) => ({...car, id}));
+
+            if(userCars.length > 0) {
+                hasContent = true;
+                let cardsHtml = '';
+                userCars.forEach(car => {
+                    const indicatorClass = getDueDateStatus(car.licenciamento);
+                    const footer = `<button class="action-button secondary btn-update-km-employee" data-id="${car.id}" title="Atualizar KM" style="gap: 0.5rem;"><i data-lucide="gauge-circle"></i> Atualizar KM</button>`;
+                    cardsHtml += createDetailCard({
+                        title: car.nome,
+                        subtitle: `Placa: ${car.placa}`,
+                        details: {
+                            'KM Atual': (car.kmAtual || 0).toLocaleString('pt-BR'),
+                            'Licenciamento': car.licenciamento ? new Date(car.licenciamento + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'
+                        },
+                        indicatorClass: indicatorClass,
+                        footerHtml: footer
+                    });
+                });
+                 finalHtml += `
+                    <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
+                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="car"></i> Meus Veículos</h2>
+                        <div class="car-card-grid">${cardsHtml}</div>
+                    </section>`;
+            }
+        }
+
+        // 3. Ferramentas
+        if (permissions.canViewTools) {
+            const toolsSnapshot = await database.ref('ferramentas').orderByChild('responsavel').equalTo(employee.nome).once('value');
+            const toolsData = toolsSnapshot.val() || {};
+            const userTools = Object.values(toolsData).filter(tool => tool.status === 'Em Uso');
+
+            if(userTools.length > 0) {
+                hasContent = true;
+                let cardsHtml = '';
+                userTools.forEach(tool => {
+                    cardsHtml += createDetailCard({
+                        title: tool.nome,
+                        subtitle: `Código: ${tool.codigo || 'S/C'}`,
+                        details: {
+                            'Obra de Destino': tool.local || 'N/A',
+                            'Data de Retirada': tool.dataRetirada ? new Date(tool.dataRetirada + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'
+                        },
+                        indicatorClass: 'indicator-tool-inuse'
+                    });
+                });
+                finalHtml += `
+                    <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
+                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="wrench"></i> Minhas Ferramentas</h2>
+                        <div class="car-card-grid">${cardsHtml}</div>
+                    </section>`;
+            }
+        }
+        
+        // 4. Estoque
+        if (permissions.canViewStock) {
+            hasContent = true;
+            finalHtml += `
+                <section class="dashboard-category" style="width: 100%;">
+                    <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="boxes"></i> Acesso ao Estoque</h2>
+                    <div class="list-item" style="background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); flex-direction: row; justify-content: space-between;">
+                        <p style="margin: 0;">Você tem permissão para visualizar e gerenciar o estoque.</p>
+                        <a href="#" class="action-button secondary" onclick="alert('Funcionalidade de acesso rápido em desenvolvimento.')">Aceder ao Estoque</a>
+                    </div>
+                </section>
+            `;
+        }
+        
+        if (!hasContent) {
+            container.innerHTML = '<p>Você não tem permissão para visualizar nenhuma seção ou não há itens alocados para você no momento.</p>';
+        } else {
+            container.innerHTML = finalHtml;
+        }
+
+        lucide.createIcons();
+        
+        container.querySelectorAll('.btn-update-km-employee').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const carId = e.currentTarget.dataset.id;
+                handleEmployeeKmUpdate(carId);
+            });
+        });
+    }
+
+
+    // --- NAVEGAÇÃO DOS SISTEMAS DENTRO DO ADMIN ---
+    document.querySelectorAll('.system-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const systemKey = e.currentTarget.dataset.system;
+            showAdminSubView('system', systemKey);
+        });
+    });
+
+    // --- LÓGICA INTEGRADA DOS SISTEMAS ---
+    function setupEventListeners() {
+        const listeners = [];
+        const firebaseRefs = [];
+
+        const addTrackedListener = (element, event, handler) => {
+            if (element) {
+                element.addEventListener(event, handler);
+                listeners.push({ element, event, handler });
+            }
+        };
+
+        const trackFirebaseRef = (ref) => {
+            if (ref) firebaseRefs.push(ref);
+        };
+        
+        const cleanup = () => {
+            listeners.forEach(({ element, event, handler }) => {
+                if (element) element.removeEventListener(event, handler);
+            });
+            firebaseRefs.forEach(ref => ref.off());
+        };
+
+        return { addTrackedListener, trackFirebaseRef, cleanup };
+    }
+
+    // --- INICIALIZAÇÃO ---
+    showTopLevelView('service-selection-view');
+    loadEmployeeData();
+    lucide.createIcons();
+
+
+    // ######################################################################
+    //  FUNÇÕES DE LÓGICA DE CADA SISTEMA
+    // ######################################################################
+
+    // =====================================================================
+    //  1. GERENCIADOR DE OBRAS
+    // =====================================================================
+    function runRentalAppLogic() {
+        const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
+        const container = adminSystemViewContainer;
+        
         const genericModal = document.getElementById('genericModal');
         const statusModal = document.getElementById('statusModal');
-        const vencimentosModal = document.getElementById('vencimentosModal');
-        const employeeDueModal = document.getElementById('employeeDueModal');
-        const employeeDueModalClose = document.getElementById('employeeDueModalClose');
-        const employeeDueList = document.getElementById('employeeDueList');
         const modalTitle = document.getElementById('modalTitle');
         const modalFields = document.getElementById('modalFields');
         const modalForm = document.getElementById('modalForm');
-        const selectCliente = document.getElementById('selectCliente');
-        const inputEndereco = document.getElementById('inputEndereco');
-        const inputCidade = document.getElementById('inputCidade');
-        const selectFornecedor = document.getElementById('selectFornecedor');
-        const selectEquipamento = document.getElementById('selectEquipamento');
-        const selectFuncionario = document.getElementById('selectFuncionario');
-        const dataTableBody = document.getElementById('dataTableBody');
-        const mainForm = document.getElementById('main-form');
-        const filterCliente = document.getElementById('filterCliente');
-        const filterEquipamento = document.getElementById('filterEquipamento');
-        const filterFornecedor = document.getElementById('filterFornecedor');
-        const filterFuncionario = document.getElementById('filterFuncionario');
-        const filterStatus = document.getElementById('filterStatus');
-        const filterEmployeeList = document.getElementById('filterEmployeeList');
-        const filterClienteDashboard = document.getElementById('filterClienteDashboard');
-        const filterEquipamentoDashboard = document.getElementById('filterEquipamentoDashboard');
-        const filterFornecedorDashboard = document.getElementById('filterFornecedorDashboard');
-        const filterFuncionarioDashboard = document.getElementById('filterFuncionarioDashboard');
-        const filterStatusDashboard = document.getElementById('filterStatusDashboard');
-        
+
+        const selectCliente = container.querySelector('#selectCliente');
+        const inputEndereco = container.querySelector('#inputEndereco');
+        const inputCidade = container.querySelector('#inputCidade');
+        const selectFornecedor = container.querySelector('#selectFornecedor');
+        const selectEquipamento = container.querySelector('#selectEquipamento');
+        const selectFuncionario = container.querySelector('#selectFuncionario');
+        const dataTableBody = container.querySelector('#dataTableBody');
+        const mainForm = container.querySelector('#main-form');
+        const filterCliente = container.querySelector('#filterCliente');
+        const filterEquipamento = container.querySelector('#filterEquipamento');
+        const filterFornecedor = container.querySelector('#filterFornecedor');
+        const filterFuncionario = container.querySelector('#filterFuncionario');
+        const filterStatus = container.querySelector('#filterStatus');
+
+        const mainView = container.querySelector("#main-view");
+        if(mainView) mainView.style.display = "block";
+
         let currentModalType = '';
         let clientesData = {};
         let currentStatusUpdateId = null;
         let lancamentosAtuais = {};
-        let funcionariosAtuais = {};
-
-        const showRentalSubView = (viewId) => {
-            appContainer.querySelectorAll('.view').forEach(view => view.style.display = 'none');
-            const viewToShow = document.getElementById(viewId);
-            if(viewToShow) { viewToShow.style.display = 'block'; }
-            lucide.createIcons();
-        };
-
-        const router = () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#employee-detail/')) {
-                const employeeId = hash.substring('#employee-detail/'.length);
-                if (funcionariosAtuais[employeeId]) { renderEmployeeDetails(employeeId, funcionariosAtuais[employeeId].nome); }
-                else { window.location.hash = '#employee-list'; }
-            } else if (hash === '#employee-list') {
-                renderEmployeeList();
-                showRentalSubView('employee-list-view');
-            } else if (hash === '#dashboard') {
-                renderDashboardView();
-                showRentalSubView('dashboard-view');
-            } else {
-                showRentalSubView('main-view');
-            }
-        };
-
+        
         const openModal = (type) => {
             currentModalType = type;
             modalFields.innerHTML = '';
@@ -191,25 +586,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const closeModal = () => {
             genericModal.style.display = 'none';
             statusModal.style.display = 'none';
-            vencimentosModal.style.display = 'none';
-            employeeDueModal.style.display = 'none';
             if (modalForm) modalForm.reset();
         };
+        
+        addTrackedListener(document.getElementById('genericModalClose'), 'click', closeModal);
+        addTrackedListener(document.getElementById('statusModal').querySelector('#btnStatusCancelar'), 'click', closeModal);
 
-        document.getElementById('genericModalClose')?.addEventListener('click', closeModal);
-        document.getElementById('vencimentosModalClose')?.addEventListener('click', closeModal);
-        employeeDueModalClose?.addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => { if (event.target == genericModal || event.target == statusModal || event.target == vencimentosModal || event.target == employeeDueModal) { closeModal(); } });
-        document.getElementById('btnNovaObra').addEventListener('click', () => openModal('clientes'));
-        document.getElementById('btnNovoFornecedor').addEventListener('click', () => openModal('fornecedores'));
-        document.getElementById('btnNovoEquipamento').addEventListener('click', () => openModal('equipamentos'));
-        document.getElementById('btnNovoFuncionario').addEventListener('click', () => openModal('funcionarios'));
-        document.getElementById('btnFastAddCliente').addEventListener('click', () => openModal('clientes'));
-        document.getElementById('btnFastAddFornecedor').addEventListener('click', () => openModal('fornecedores'));
-        document.getElementById('btnFastAddEquipamento').addEventListener('click', () => openModal('equipamentos'));
-        document.getElementById('btnFastAddFuncionario').addEventListener('click', () => openModal('funcionarios'));
+        container.querySelectorAll('#btnNovaObra, #btnFastAddCliente').forEach(btn => addTrackedListener(btn, 'click', () => openModal('clientes')));
+        container.querySelectorAll('#btnNovoFornecedor, #btnFastAddFornecedor').forEach(btn => addTrackedListener(btn, 'click', () => openModal('fornecedores')));
+        container.querySelectorAll('#btnNovoEquipamento, #btnFastAddEquipamento').forEach(btn => addTrackedListener(btn, 'click', () => openModal('equipamentos')));
+        container.querySelectorAll('#btnNovoFuncionario, #btnFastAddFuncionario').forEach(btn => addTrackedListener(btn, 'click', () => openModal('funcionarios')));
 
-        modalForm.addEventListener('submit', (e) => {
+        addTrackedListener(modalForm, 'submit', (e) => {
             e.preventDefault();
             let data = {};
             switch (currentModalType) {
@@ -222,10 +610,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const loadSelectOptions = (refName, selectElement, placeholder) => {
-            database.ref(refName).on('value', (snapshot) => {
-                const data = snapshot.val();
-                if(refName === 'funcionarios') { funcionariosAtuais = data || {}; if (window.location.hash === '#employee-list') { renderEmployeeList(); } }
-                if (refName === 'clientes') { clientesData = data || {}; }
+            const ref = database.ref(refName);
+            trackFirebaseRef(ref);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                if(refName === 'clientes') { clientesData = data; }
+                if (!selectElement) return;
                 const selectedValue = selectElement.value;
                 selectElement.innerHTML = `<option value="">${placeholder}</option>`;
                 for (const key in data) { selectElement.innerHTML += `<option value="${key}">${data[key].nome}</option>`; }
@@ -238,23 +628,23 @@ document.addEventListener('DOMContentLoaded', function () {
         loadSelectOptions('equipamentos', selectEquipamento, 'Selecione um equipamento');
         loadSelectOptions('funcionarios', selectFuncionario, 'Selecione um funcionário');
 
-        selectCliente.addEventListener('change', () => {
+        addTrackedListener(selectCliente, 'change', () => {
             const cliente = clientesData[selectCliente.value];
-            inputEndereco.value = cliente ? cliente.endereco : '';
-            inputCidade.value = cliente ? cliente.cidade : '';
+            if (inputEndereco) inputEndereco.value = cliente ? cliente.endereco : '';
+            if (inputCidade) inputCidade.value = cliente ? cliente.cidade : '';
         });
 
-        mainForm.addEventListener('submit', (e) => {
+        addTrackedListener(mainForm, 'submit', (e) => {
             e.preventDefault();
             const data = {
                 clienteId: selectCliente.value, clienteNome: selectCliente.options[selectCliente.selectedIndex].text,
                 fornecedorId: selectFornecedor.value, fornecedorNome: selectFornecedor.options[selectFornecedor.selectedIndex].text,
                 equipamentoId: selectEquipamento.value, equipamentoNome: selectEquipamento.options[selectEquipamento.selectedIndex].text,
                 funcionarioId: selectFuncionario.value, funcionarioNome: selectFuncionario.options[selectFuncionario.selectedIndex].text,
-                ctr: document.getElementById('inputCtr').value, valor: document.getElementById('inputValor').value,
-                observacao: document.getElementById('inputObservacao').value, status: 'Locado',
-                dataInicio: document.getElementById('inputDataInicio').value, frequencia: document.getElementById('selectFrequencia').value,
-                reagendamentoAutomatico: document.getElementById('selectFrequencia').value !== 'unico'
+                ctr: container.querySelector('#inputCtr').value, valor: container.querySelector('#inputValor').value,
+                observacao: container.querySelector('#inputObservacao').value, status: 'Locado',
+                dataInicio: container.querySelector('#inputDataInicio').value, frequencia: container.querySelector('#selectFrequencia').value,
+                reagendamentoAutomatico: container.querySelector('#selectFrequencia').value !== 'unico'
             };
             database.ref('lancamentos').push(data).then(() => { mainForm.reset(); inputEndereco.value = ''; inputCidade.value = ''; }).catch(error => console.error("Erro: ", error));
         });
@@ -282,7 +672,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         const applyFiltersAndRender = () => {
-            const queries = { c: filterCliente.value.toLowerCase(), e: filterEquipamento.value.toLowerCase(), fo: filterFornecedor.value.toLowerCase(), fu: filterFuncionario.value.toLowerCase(), s: filterStatus.value };
+            if (!dataTableBody) return;
+            const queries = { 
+                c: filterCliente.value.toLowerCase(), 
+                e: filterEquipamento.value.toLowerCase(), 
+                fo: filterFornecedor.value.toLowerCase(), 
+                fu: filterFuncionario.value.toLowerCase(), 
+                s: filterStatus.value 
+            };
             dataTableBody.innerHTML = '';
             Object.keys(lancamentosAtuais).filter(key => {
                 const i = lancamentosAtuais[key];
@@ -298,242 +695,105 @@ document.addEventListener('DOMContentLoaded', function () {
             lucide.createIcons();
         };
 
-        database.ref('lancamentos').on('value', (snapshot) => {
+        const lancamentosRef = database.ref('lancamentos');
+        trackFirebaseRef(lancamentosRef);
+        lancamentosRef.on('value', (snapshot) => {
             lancamentosAtuais = snapshot.val() || {};
             applyFiltersAndRender();
-            if (['#dashboard', '#employee-list', '#employee-detail'].some(prefix => window.location.hash.includes(prefix))) { router(); }
         });
         
-        [filterCliente, filterEquipamento, filterFornecedor, filterFuncionario, filterStatus].forEach(i => i.addEventListener('input', applyFiltersAndRender));
+        [filterCliente, filterEquipamento, filterFornecedor, filterFuncionario, filterStatus].forEach(i => addTrackedListener(i, 'input', applyFiltersAndRender));
 
-        dataTableBody.addEventListener('click', (e) => {
+        addTrackedListener(dataTableBody, 'click', (e) => {
             const button = e.target.closest('.btn-status');
             if (button) { currentStatusUpdateId = button.dataset.id; statusModal.style.display = 'block'; }
         });
 
-        document.getElementById('btnStatusCancelar').addEventListener('click', closeModal);
-        document.getElementById('btnStatusParcial').addEventListener('click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Parcial' }).then(closeModal); } });
-        document.getElementById('btnStatusCompleto').addEventListener('click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Devolvido' }).then(closeModal); } });
-
-        const renderEmployeeList = () => {
-            const container = document.getElementById('employee-list-container');
-            if (!container) return;
-            container.innerHTML = '';
-            const filterQuery = filterEmployeeList.value.toLowerCase();
-            const filtered = Object.entries(funcionariosAtuais).filter(([_, f]) => (f.nome || '').toLowerCase().includes(filterQuery));
-            if (filtered.length === 0) { container.innerHTML = '<p>Nenhum funcionário encontrado.</p>'; return; }
-            filtered.forEach(([key, func]) => {
-                container.innerHTML += `<div class="list-item"><span class="list-item-name">${func.nome}</span><a href="#employee-detail/${key}" class="view-details-button"><i data-lucide="eye"></i> Ver Detalhes</a></div>`;
-            });
-            lucide.createIcons();
-        };
+        addTrackedListener(document.getElementById('btnStatusParcial'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Parcial' }).then(closeModal); } });
+        addTrackedListener(document.getElementById('btnStatusCompleto'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Devolvido' }).then(closeModal); } });
         
-        filterEmployeeList.addEventListener('input', renderEmployeeList);
+        return cleanup;
+    }
+
+    // =====================================================================
+    //  2. CONTROLE DE ESTOQUE
+    // =====================================================================
+    function runStockControlLogic() {
+        const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
+        const container = adminSystemViewContainer;
         
-        const checkAndShowEmployeeDueModal = (employeeId) => {
-            const itemsDueSoon = Object.values(lancamentosAtuais).filter(item => {
-                if (item.funcionarioId !== employeeId || item.status === 'Devolvido') return false;
-                const venc = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
-                return venc && Math.ceil((new Date(venc + 'T03:00:00Z') - new Date().setHours(0,0,0,0)) / 864e5) <= 7;
-            }).map(item => ({...item, vencimento: new Date(calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico) + 'T03:00:00Z').toLocaleDateString('pt-BR')}))
-              .sort((a,b) => new Date(a.dataInicio) - new Date(b.dataInicio));
-
-            if (itemsDueSoon.length > 0) {
-                employeeDueList.innerHTML = itemsDueSoon.map(item => `<div class="vencimento-item"><div class="vencimento-item-info">${item.equipamentoNome}<span>Cliente: ${item.clienteNome}</span></div><div class="vencimento-item-info"><span>Vence em: ${item.vencimento}</span></div></div>`).join('');
-                employeeDueModal.style.display = 'block';
-                lucide.createIcons();
-            }
-        };
-
-        const renderEmployeeDetails = (employeeId, employeeName) => {
-            document.getElementById('employee-detail-title').textContent = employeeName;
-            const tableBody = document.getElementById('employeeDetailTableBody');
-            tableBody.innerHTML = '';
-            checkAndShowEmployeeDueModal(employeeId);
-            Object.values(lancamentosAtuais).filter(i => i.funcionarioId === employeeId && i.status !== 'Devolvido').forEach(item => {
-                const proximoVencimentoStr = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
-                const row = tableBody.insertRow();
-                row.className = getDueDateStatus(proximoVencimentoStr);
-                const formatarFrequencia = (f) => ({ unico: 'Sem Reagendamento', diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal' }[f] || f || 'N/A');
-                row.innerHTML = `<td data-label="Cliente">${item.clienteNome || ''}</td><td data-label="Equipamento">${item.equipamentoNome || ''}</td><td data-label="Fornecedor">${item.fornecedorNome || ''}</td><td data-label="CTR">${item.ctr || ''}</td><td data-label="Valor">R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td data-label="Próx. Venc.">${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td data-label="Frequência">${formatarFrequencia(item.frequencia)}</td><td data-label="Status"><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td data-label="Observação">${item.observacao || ''}</td>`;
-            });
-            showRentalSubView('employee-detail-view');
-        };
-        
-        const renderDashboardView = () => {
-            const tableBody = document.getElementById('dashboardTableBody');
-            if (!tableBody) return;
-
-            const clienteQuery = filterClienteDashboard.value.toLowerCase();
-            const equipamentoQuery = filterEquipamentoDashboard.value.toLowerCase();
-            const fornecedorQuery = filterFornecedorDashboard.value.toLowerCase();
-            const funcionarioQuery = filterFuncionarioDashboard.value.toLowerCase();
-            const statusQuery = filterStatusDashboard.value;
-
-            tableBody.innerHTML = '';
-
-            const filteredKeys = Object.keys(lancamentosAtuais).filter(key => {
-                const item = lancamentosAtuais[key];
-                if (item.status === 'Devolvido') return false;
-
-                const matchesCliente = (item.clienteNome || '').toLowerCase().includes(clienteQuery);
-                const matchesEquipamento = (item.equipamentoNome || '').toLowerCase().includes(equipamentoQuery);
-                const matchesFornecedor = (item.fornecedorNome || '').toLowerCase().includes(fornecedorQuery);
-                const matchesFuncionario = (item.funcionarioNome || '').toLowerCase().includes(funcionarioQuery);
-                const matchesStatus = statusQuery === 'all' || item.status === statusQuery;
-                
-                return matchesCliente && matchesEquipamento && matchesFornecedor && matchesFuncionario && matchesStatus;
-            });
-
-            filteredKeys.forEach(key => {
-                const item = lancamentosAtuais[key];
-                const proximoVencimentoStr = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
-                const dueDateClass = getDueDateStatus(proximoVencimentoStr);
-                
-                const row = tableBody.insertRow();
-                row.className = dueDateClass;
-
-                const formatarFrequencia = (freq) => ({ unico: 'Sem Reagendamento', diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal' }[freq] || freq || 'N/A');
-                
-                row.innerHTML = `
-                    <td data-label="Cliente">${item.clienteNome || ''}</td>
-                    <td data-label="Equipamento">${item.equipamentoNome || ''}</td>
-                    <td data-label="Fornecedor">${item.fornecedorNome || ''}</td>
-                    <td data-label="Funcionário">${item.funcionarioNome || ''}</td>
-                    <td data-label="CTR">${item.ctr || ''}</td>
-                    <td data-label="Valor">R$ ${parseFloat(item.valor || 0).toFixed(2)}</td>
-                    <td data-label="Próx. Venc.">${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                    <td data-label="Frequência">${formatarFrequencia(item.frequencia)}</td>
-                    <td data-label="Status"><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td>
-                    <td data-label="Observação">${item.observacao || ''}</td>
-                `;
-            });
-            lucide.createIcons();
-        };
-
-        [filterClienteDashboard, filterEquipamentoDashboard, filterFornecedorDashboard, filterFuncionarioDashboard, filterStatusDashboard].forEach(i => i.addEventListener('input', renderDashboardView));
-        
-        const verificarVencimentos = () => { /* ... (código existente) ... */ };
-        document.getElementById('btnVerificarVencimentosHoje').addEventListener('click', verificarVencimentos);
-        
-        window.addEventListener('hashchange', router);
-        router();
-        database.ref('lancamentos').once('value', () => { if (!window.location.hash || window.location.hash === '#') { verificarVencimentos(); } });
-    };
-
-    // --- LÓGICA DO APP DE CONTROLE DE ESTOQUE ---
-    const initializeStockControlApp = () => {
-        const passwordModal = document.getElementById('stock-password-modal');
-        const passwordForm = document.getElementById('stock-password-form');
-        const passwordInput = document.getElementById('stock-password-input');
-        const passwordError = document.getElementById('stock-password-error');
-        const appContainer = document.getElementById('stock-app-container');
-
-        const handlePasswordSubmit = (e) => {
-            e.preventDefault();
-            if (passwordInput.value === 'estoque1234') { // Senha para o estoque
-                sessionStorage.setItem('isAuthenticatedStock', 'true');
-                passwordModal.style.display = 'none';
-                appContainer.style.display = 'block';
-                if (!stockAppInitialized) {
-                    runStockControlLogic();
-                }
-            } else {
-                passwordError.textContent = 'Senha incorreta.';
-                passwordInput.value = '';
-            }
-        };
-        passwordForm.addEventListener('submit', handlePasswordSubmit);
-        
-        if (sessionStorage.getItem('isAuthenticatedStock') === 'true') {
-            passwordModal.style.display = 'none';
-            appContainer.style.display = 'block';
-            if (!stockAppInitialized) {
-                runStockControlLogic();
-            }
-        } else {
-            appContainer.style.display = 'none';
-            passwordModal.style.display = 'flex';
-            passwordInput.focus();
-        }
-    };
-    
-    const runStockControlLogic = () => {
-        if (stockAppInitialized) return;
-        stockAppInitialized = true;
-
         const stockRef = database.ref('estoque');
+        trackFirebaseRef(stockRef);
         let stockItemsData = {};
 
-        const itemModal = document.getElementById('stock-item-modal');
-        const itemModalTitle = document.getElementById('stock-item-modal-title');
-        const itemForm = document.getElementById('stock-item-form');
-        const movementModal = document.getElementById('stock-movement-modal');
-        const movementForm = document.getElementById('stock-movement-form');
-        const tableBody = document.getElementById('stock-table-body');
+        const itemModal = container.querySelector('#stock-item-modal');
+        const itemModalTitle = container.querySelector('#stock-item-modal-title');
+        const itemForm = container.querySelector('#stock-item-form');
+        const movementModal = container.querySelector('#stock-movement-modal');
+        const movementForm = container.querySelector('#stock-movement-form');
+        const tableBody = container.querySelector('#stock-table-body');
         
-        const filterName = document.getElementById('filter-stock-name');
-        const filterCode = document.getElementById('filter-stock-code');
-        const filterCategory = document.getElementById('filter-stock-category');
+        const filterName = container.querySelector('#filter-stock-name');
+        const filterCode = container.querySelector('#filter-stock-code');
+        const filterCategory = container.querySelector('#filter-stock-category');
 
         const openItemModal = (item = {}) => {
             itemForm.reset();
-            document.getElementById('stock-item-id').value = item.id || '';
-            document.getElementById('stock-item-name').value = item.nome || '';
-            document.getElementById('stock-item-code').value = item.codigo || '';
-            document.getElementById('stock-item-category').value = item.categoria || '';
-            document.getElementById('stock-item-quantity').value = item.quantidade ?? '';
-            document.getElementById('stock-item-unit').value = item.unidade || 'un';
-            document.getElementById('stock-item-quantity').disabled = !!item.id;
+            itemForm.querySelector('#stock-item-id').value = item.id || '';
+            itemForm.querySelector('#stock-item-name').value = item.nome || '';
+            itemForm.querySelector('#stock-item-code').value = item.codigo || '';
+            itemForm.querySelector('#stock-item-category').value = item.categoria || '';
+            itemForm.querySelector('#stock-item-quantity').value = item.quantidade ?? '';
+            itemForm.querySelector('#stock-item-unit').value = item.unidade || 'un';
+            itemForm.querySelector('#stock-item-quantity').disabled = !!item.id;
             itemModalTitle.textContent = item.id ? 'Editar Item' : 'Adicionar Novo Item';
             itemModal.style.display = 'block';
         };
 
         const openMovementModal = (item) => {
             movementForm.reset();
-            document.getElementById('stock-movement-item-id').value = item.id || '';
-            document.getElementById('stock-movement-modal-title').textContent = `Movimentar: ${item.nome}`;
+            movementForm.querySelector('#stock-movement-item-id').value = item.id || '';
+            movementModal.querySelector('#stock-movement-modal-title').textContent = `Movimentar: ${item.nome}`;
             movementModal.style.display = 'block';
         };
         
         const closeModal = () => {
-            itemModal.style.display = 'none';
-            movementModal.style.display = 'none';
+            if(itemModal) itemModal.style.display = 'none';
+            if(movementModal) movementModal.style.display = 'none';
         }
         
-        document.getElementById('btn-add-stock-item').addEventListener('click', () => openItemModal());
-        document.getElementById('stock-item-modal-close').addEventListener('click', closeModal);
-        document.getElementById('stock-movement-modal-close').addEventListener('click', closeModal);
+        addTrackedListener(container.querySelector('#btn-add-stock-item'), 'click', () => openItemModal());
+        addTrackedListener(container.querySelector('#stock-item-modal-close'), 'click', closeModal);
+        addTrackedListener(container.querySelector('#stock-movement-modal-close'), 'click', closeModal);
 
-        itemForm.addEventListener('submit', (e) => {
+        addTrackedListener(itemForm, 'submit', (e) => {
             e.preventDefault();
-            const id = document.getElementById('stock-item-id').value;
+            const id = itemForm.querySelector('#stock-item-id').value;
             const data = {
-                nome: document.getElementById('stock-item-name').value,
-                codigo: document.getElementById('stock-item-code').value,
-                categoria: document.getElementById('stock-item-category').value,
-                unidade: document.getElementById('stock-item-unit').value,
+                nome: itemForm.querySelector('#stock-item-name').value,
+                codigo: itemForm.querySelector('#stock-item-code').value,
+                categoria: itemForm.querySelector('#stock-item-category').value,
+                unidade: itemForm.querySelector('#stock-item-unit').value,
             };
             
             let promise;
             if (id) {
                 promise = stockRef.child(id).update(data);
             } else {
-                data.quantidade = parseInt(document.getElementById('stock-item-quantity').value) || 0;
+                data.quantidade = parseInt(itemForm.querySelector('#stock-item-quantity').value) || 0;
                 promise = stockRef.push(data);
             }
-
             promise.then(closeModal).catch(err => console.error("Erro ao salvar item:", err));
         });
 
-        movementForm.addEventListener('submit', (e) => {
+        addTrackedListener(movementForm, 'submit', (e) => {
             e.preventDefault();
-            const id = document.getElementById('stock-movement-item-id').value;
+            const id = movementForm.querySelector('#stock-movement-item-id').value;
             const itemAtual = stockItemsData[id];
             if(!itemAtual) return;
 
-            const qtdMovimento = parseInt(document.getElementById('movement-quantity').value);
-            const tipoMovimento = document.getElementById('movement-type').value;
+            const qtdMovimento = parseInt(movementForm.querySelector('#movement-quantity').value);
+            const tipoMovimento = movementForm.querySelector('#movement-type').value;
             let novaQuantidade = itemAtual.quantidade;
 
             if(tipoMovimento === 'saida') {
@@ -550,6 +810,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const renderStockTable = () => {
+            if(!tableBody) return;
             const nameQuery = filterName.value.toLowerCase();
             const codeQuery = filterCode.value.toLowerCase();
             const categoryQuery = filterCategory.value.toLowerCase();
@@ -580,86 +841,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
         stockRef.on('value', (snapshot) => {
             const data = snapshot.val() || {};
-            stockItemsData = {}; // Limpa para evitar duplicatas
+            stockItemsData = {};
             Object.keys(data).forEach(key => {
                 stockItemsData[key] = { ...data[key], id: key };
             });
             renderStockTable();
         });
         
-        [filterName, filterCode, filterCategory].forEach(el => el.addEventListener('input', renderStockTable));
+        [filterName, filterCode, filterCategory].forEach(el => addTrackedListener(el, 'input', renderStockTable));
 
-        tableBody.addEventListener('click', (e) => {
+        addTrackedListener(tableBody, 'click', (e) => {
             const editBtn = e.target.closest('.btn-edit-stock-item');
             const moveBtn = e.target.closest('.btn-move-stock-item');
             if (editBtn) { openItemModal(stockItemsData[editBtn.dataset.id]); }
             if (moveBtn) { openMovementModal(stockItemsData[moveBtn.dataset.id]); }
         });
-    };
-
-     // --- LÓGICA DO APP DE CONTROLE DE CARROS ---
-    const initializeCarControlApp = () => {
-        const passwordModal = document.getElementById('car-password-modal');
-        const passwordForm = document.getElementById('car-password-form');
-        const passwordInput = document.getElementById('car-password-input');
-        const passwordError = document.getElementById('car-password-error');
-        const appContainer = document.getElementById('car-app-container');
-
-        const handlePasswordSubmit = (e) => {
-            e.preventDefault();
-            if (passwordInput.value === 'carros1234') {
-                sessionStorage.setItem('isAuthenticatedCar', 'true');
-                passwordModal.style.display = 'none';
-                appContainer.style.display = 'block';
-                if (!carAppInitialized) {
-                    runCarControlLogic();
-                }
-            } else {
-                passwordError.textContent = 'Senha incorreta.';
-                passwordInput.value = '';
-            }
-        };
-        passwordForm.addEventListener('submit', handlePasswordSubmit);
-
-        if (sessionStorage.getItem('isAuthenticatedCar') === 'true') {
-            passwordModal.style.display = 'none';
-            appContainer.style.display = 'block';
-            if (!carAppInitialized) {
-                runCarControlLogic();
-            }
-        } else {
-            appContainer.style.display = 'none';
-            passwordModal.style.display = 'flex';
-            passwordInput.focus();
-        }
-    };
-
-    const runCarControlLogic = () => {
-        if (carAppInitialized) return;
-        carAppInitialized = true;
+        
+        return cleanup;
+    }
+    
+    // =====================================================================
+    //  3. CONTROLE DE CARROS
+    // =====================================================================
+    function runCarControlLogic() {
+        const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
+        const container = adminSystemViewContainer;
 
         const carRef = database.ref('veiculos');
+        trackFirebaseRef(carRef);
         let carItemsData = {};
+        let employeesData = {}; 
 
-        // Modals
-        const carItemModal = document.getElementById('car-item-modal');
-        const updateKmModal = document.getElementById('car-update-km-modal');
-        const maintenanceModal = document.getElementById('car-maintenance-modal');
+        database.ref('funcionarios').once('value', snapshot => {
+            employeesData = snapshot.val() || {};
+        });
+
+        const carItemModal = container.querySelector('#car-item-modal');
+        const updateKmModal = document.getElementById('car-update-km-modal'); // Use global modal
+        const maintenanceModal = container.querySelector('#car-maintenance-modal');
         
-        // Forms
-        const carItemForm = document.getElementById('car-item-form');
-        const updateKmForm = document.getElementById('car-update-km-form');
-        const maintenanceForm = document.getElementById('car-maintenance-form');
+        const carItemForm = container.querySelector('#car-item-form');
+        const updateKmForm = document.getElementById('car-update-km-form'); // Use global form
+        const maintenanceForm = container.querySelector('#car-maintenance-form');
 
-        const carCardContainer = document.getElementById('car-card-container');
-        const filterCarName = document.getElementById('filter-car-name');
-        const filterCarPlate = document.getElementById('filter-car-plate');
+        const carCardContainer = container.querySelector('#car-card-container');
+        const filterCarName = container.querySelector('#filter-car-name');
+        const filterCarPlate = container.querySelector('#filter-car-plate');
 
-        const openCarModal = (modalId, data = {}) => {
-            const modal = document.getElementById(modalId);
+        const openCarModal = (modal, data = {}) => {
             if (!modal) return;
             const form = modal.querySelector('form');
             if(form) form.reset();
+            const modalId = modal.id;
             
             if (modalId === 'car-item-modal') {
                 modal.querySelector('#car-item-modal-title').textContent = data.id ? 'Editar Veículo' : 'Adicionar Veículo';
@@ -668,7 +901,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 modal.querySelector('#car-item-plate').value = data.placa || '';
                 modal.querySelector('#car-item-km').value = data.kmAtual || '';
                 modal.querySelector('#car-item-cc').value = data.cc || '';
-                modal.querySelector('#car-item-driver').value = data.condutor || '';
+                const driverSelect = modal.querySelector('#car-item-driver');
+                driverSelect.innerHTML = '<option value="">Selecione um funcionário</option>';
+                for (const key in employeesData) {
+                    if (employeesData.hasOwnProperty(key)) {
+                        driverSelect.innerHTML += `<option value="${employeesData[key].nome}">${employeesData[key].nome}</option>`;
+                    }
+                }
+                driverSelect.value = data.condutor || '';
                 modal.querySelector('#car-item-license').value = data.licenciamento || '';
                 modal.querySelector('#car-item-renavan').value = data.renavan || '';
             } else if (modalId === 'car-update-km-modal') {
@@ -683,68 +923,67 @@ document.addEventListener('DOMContentLoaded', function () {
                  modal.querySelector('#car-next-maintenance-km').value = data.proximaManutencaoKM || '';
                  modal.querySelector('#car-next-maintenance-date').value = data.proximaManutencaoData || '';
             }
-            
             modal.style.display = 'block';
         };
 
         const closeCarModals = () => {
-            carItemModal.style.display = 'none';
-            updateKmModal.style.display = 'none';
-            maintenanceModal.style.display = 'none';
+            if(carItemModal) carItemModal.style.display = 'none';
+            if(updateKmModal) updateKmModal.style.display = 'none';
+            if(maintenanceModal) maintenanceModal.style.display = 'none';
         };
 
-        document.getElementById('btn-add-car').addEventListener('click', () => openCarModal('car-item-modal'));
-        document.getElementById('car-item-modal-close').addEventListener('click', closeCarModals);
-        document.getElementById('car-update-km-modal-close').addEventListener('click', closeCarModals);
-        document.getElementById('car-maintenance-modal-close').addEventListener('click', closeCarModals);
-
-        carItemForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = document.getElementById('car-item-id').value;
-            const data = {
-                nome: document.getElementById('car-item-name').value,
-                placa: document.getElementById('car-item-plate').value,
-                kmAtual: parseInt(document.getElementById('car-item-km').value) || 0,
-                cc: document.getElementById('car-item-cc').value,
-                condutor: document.getElementById('car-item-driver').value,
-                licenciamento: document.getElementById('car-item-license').value,
-                renavan: document.getElementById('car-item-renavan').value,
-            };
-            const promise = id ? carRef.child(id).update(data) : carRef.push(data);
-            promise.then(closeCarModals).catch(err => console.error("Erro:", err));
-        });
-
-        updateKmForm.addEventListener('submit', (e) => {
+        addTrackedListener(container.querySelector('#btn-add-car'), 'click', () => openCarModal(carItemModal));
+        addTrackedListener(container.querySelector('#car-item-modal-close'), 'click', closeCarModals);
+        addTrackedListener(container.querySelector('#car-maintenance-modal-close'), 'click', closeCarModals);
+        
+        addTrackedListener(updateKmForm, 'submit', (e) => {
              e.preventDefault();
-             const id = document.getElementById('car-update-km-id').value;
-             const newKm = parseInt(document.getElementById('car-update-km-input').value);
-             if (id && newKm >= (carItemsData[id].kmAtual || 0)) {
+             const id = updateKmForm.querySelector('#car-update-km-id').value;
+             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
+             const carData = carItemsData[id];
+             if (id && carData && newKm >= (carData.kmAtual || 0)) {
                  carRef.child(id).update({ kmAtual: newKm }).then(closeCarModals);
              } else {
                  alert('A nova quilometragem deve ser maior ou igual à atual.');
              }
         });
-        
-        maintenanceForm.addEventListener('submit', (e) => {
+
+        addTrackedListener(carItemForm, 'submit', (e) => {
             e.preventDefault();
-            const id = document.getElementById('car-maintenance-id').value;
+            const id = carItemForm.querySelector('#car-item-id').value;
+            const data = {
+                nome: carItemForm.querySelector('#car-item-name').value,
+                placa: carItemForm.querySelector('#car-item-plate').value,
+                kmAtual: parseInt(carItemForm.querySelector('#car-item-km').value) || 0,
+                cc: carItemForm.querySelector('#car-item-cc').value,
+                condutor: carItemForm.querySelector('#car-item-driver').value,
+                licenciamento: carItemForm.querySelector('#car-item-license').value,
+                renavan: carItemForm.querySelector('#car-item-renavan').value,
+            };
+            const promise = id ? carRef.child(id).update(data) : carRef.push(data);
+            promise.then(closeCarModals).catch(err => console.error("Erro:", err));
+        });
+        
+        addTrackedListener(maintenanceForm, 'submit', (e) => {
+            e.preventDefault();
+            const id = maintenanceForm.querySelector('#car-maintenance-id').value;
             const item = carItemsData[id];
             if (!item) return;
 
-            const serviceKm = parseInt(document.getElementById('car-maintenance-km').value);
+            const serviceKm = parseInt(maintenanceForm.querySelector('#car-maintenance-km').value);
             const updates = {
                 kmAtual: serviceKm,
-                proximaTrocaOleoKM: parseInt(document.getElementById('car-next-oil-km').value) || null,
-                proximaTrocaOleoData: document.getElementById('car-next-oil-date').value || null,
-                proximaManutencaoKM: parseInt(document.getElementById('car-next-maintenance-km').value) || null,
-                proximaManutencaoData: document.getElementById('car-next-maintenance-date').value || null
+                proximaTrocaOleoKM: parseInt(maintenanceForm.querySelector('#car-next-oil-km').value) || null,
+                proximaTrocaOleoData: maintenanceForm.querySelector('#car-next-oil-date').value || null,
+                proximaManutencaoKM: parseInt(maintenanceForm.querySelector('#car-next-maintenance-km').value) || null,
+                proximaManutencaoData: maintenanceForm.querySelector('#car-next-maintenance-date').value || null
             };
             
             const historico = item.historicoManutencao || [];
             historico.push({
                 data: new Date().toISOString().split('T')[0],
                 km: serviceKm,
-                tipo: document.getElementById('car-maintenance-type').value,
+                tipo: maintenanceForm.querySelector('#car-maintenance-type').value,
             });
             updates.historicoManutencao = historico;
 
@@ -752,6 +991,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const renderCarCards = () => {
+            if (!carCardContainer) return;
             const nameQuery = filterCarName.value.toLowerCase();
             const plateQuery = filterCarPlate.value.toLowerCase();
             carCardContainer.innerHTML = '';
@@ -761,49 +1001,36 @@ document.addEventListener('DOMContentLoaded', function () {
             }).forEach(([id, car]) => {
                 const indicators = [];
                 const kmAlertThreshold = 1000;
-                const dateAlertThreshold = 30 * 24 * 60 * 60 * 1000; // 30 dias
+                const dateAlertThreshold = 30; // days
 
                 if (car.proximaTrocaOleoKM) {
                     if (car.kmAtual >= car.proximaTrocaOleoKM) {
-                        indicators.push('<div class="indicator-bar indicator-oil-danger" title="Troca de óleo vencida"></div>');
+                        indicators.push('<div class="indicator-bar indicator-due-danger" title="Troca de óleo vencida"></div>');
                     } else if (car.kmAtual >= car.proximaTrocaOleoKM - kmAlertThreshold) {
-                        indicators.push('<div class="indicator-bar indicator-oil-warning" title="Troca de óleo próxima"></div>');
+                        indicators.push('<div class="indicator-bar indicator-due-warning" title="Troca de óleo próxima"></div>');
                     }
                 }
                 
                 if (car.licenciamento) {
-                    const licenseDate = new Date(car.licenciamento);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const timeDiff = licenseDate - today;
-                    
-                    if (timeDiff < 0) {
-                         indicators.push('<div class="indicator-bar indicator-license-danger" title="Licenciamento vencido"></div>');
-                    } else if (timeDiff < dateAlertThreshold) {
-                         indicators.push('<div class="indicator-bar indicator-license-warning" title="Licenciamento próximo"></div>');
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const licenseDate = new Date(car.licenciamento + 'T03:00:00Z'); licenseDate.setHours(0,0,0,0);
+                    const diffDays = Math.ceil((licenseDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 0) {
+                         indicators.push('<div class="indicator-bar indicator-due-danger" title="Licenciamento vencido"></div>');
+                    } else if (diffDays <= dateAlertThreshold) {
+                         indicators.push('<div class="indicator-bar indicator-due-warning" title="Licenciamento próximo"></div>');
                     }
                 }
                 
                 const formatKm = (km) => km ? km.toLocaleString('pt-BR') : '-';
-                const formatDate = (dateString) => {
-                    if (!dateString) return '-';
-                    // Adiciona um dia à data para corrigir problemas de fuso horário na exibição
-                    const date = new Date(dateString);
-                    date.setDate(date.getDate() + 1);
-                    return date.toLocaleDateString('pt-BR');
-                };
+                const formatDate = (dateString) => dateString ? new Date(dateString + 'T03:00:00Z').toLocaleDateString('pt-BR') : '-';
                 
                 const card = document.createElement('div');
                 card.className = 'car-card';
                 card.innerHTML = `
-                    <div class="status-indicators">
-                        ${indicators.join('')}
-                    </div>
+                    <div class="status-indicators">${indicators.join('')}</div>
                     <div class="car-card-content">
-                        <div class="car-card-header">
-                            <h3>${car.nome || 'N/A'}</h3>
-                            <p>${car.placa || 'N/A'}</p>
-                        </div>
+                        <div class="car-card-header"><h3>${car.nome || 'N/A'}</h3><p>${car.placa || 'N/A'}</p></div>
                         <div class="car-card-body">
                             <div class="car-card-item"><strong>KM Atual:</strong> ${formatKm(car.kmAtual)}</div>
                             <div class="car-card-item"><strong>Condutor:</strong> ${car.condutor || '-'}</div>
@@ -817,8 +1044,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <button class="btn-status btn-update-km" data-id="${id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i></button>
                             <button class="btn-status btn-add-maintenance" data-id="${id}" title="Registrar Manutenção"><i data-lucide="wrench"></i></button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 carCardContainer.appendChild(card);
             });
             lucide.createIcons();
@@ -831,103 +1057,64 @@ document.addEventListener('DOMContentLoaded', function () {
             renderCarCards();
         });
 
-        filterCarName.addEventListener('input', renderCarCards);
-        filterCarPlate.addEventListener('input', renderCarCards);
+        addTrackedListener(filterCarName, 'input', renderCarCards);
+        addTrackedListener(filterCarPlate, 'input', renderCarCards);
 
-        carCardContainer.addEventListener('click', (e) => {
+        addTrackedListener(carCardContainer, 'click', (e) => {
             const button = e.target.closest('.btn-status');
             if(!button) return;
-
             const id = button.dataset.id;
-            if (button.classList.contains('btn-edit-car')) openCarModal('car-item-modal', carItemsData[id]);
-            if (button.classList.contains('btn-update-km')) openCarModal('car-update-km-modal', carItemsData[id]);
-            if (button.classList.contains('btn-add-maintenance')) openCarModal('car-maintenance-modal', carItemsData[id]);
+            const car = carItemsData[id];
+            if (button.classList.contains('btn-edit-car')) openCarModal(carItemModal, car);
+            if (button.classList.contains('btn-update-km')) openCarModal(updateKmModal, car);
+            if (button.classList.contains('btn-add-maintenance')) openCarModal(maintenanceModal, car);
         });
-
-    };
+        
+        return cleanup;
+    }
     
-    // --- LÓGICA DO APP DE CONTROLE DE FERRAMENTAS ---
-    const initializeToolControlApp = () => {
-        const passwordModal = document.getElementById('tool-password-modal');
-        const passwordForm = document.getElementById('tool-password-form');
-        const passwordInput = document.getElementById('tool-password-input');
-        const passwordError = document.getElementById('tool-password-error');
-        const appContainer = document.getElementById('tool-app-container');
-
-        const handlePasswordSubmit = (e) => {
-            e.preventDefault();
-            if (passwordInput.value === 'ferramentas1234') { // Senha para ferramentas
-                sessionStorage.setItem('isAuthenticatedTool', 'true');
-                passwordModal.style.display = 'none';
-                appContainer.style.display = 'block';
-                if (!toolAppInitialized) {
-                    runToolControlLogic();
-                }
-            } else {
-                passwordError.textContent = 'Senha incorreta.';
-                passwordInput.value = '';
-            }
-        };
-        passwordForm.addEventListener('submit', handlePasswordSubmit);
-
-        if (sessionStorage.getItem('isAuthenticatedTool') === 'true') {
-            passwordModal.style.display = 'none';
-            appContainer.style.display = 'block';
-            if (!toolAppInitialized) {
-                runToolControlLogic();
-            }
-        } else {
-            appContainer.style.display = 'none';
-            passwordModal.style.display = 'flex';
-            passwordInput.focus();
-        }
-    };
-    
-    const runToolControlLogic = () => {
-        if(toolAppInitialized) return;
-        toolAppInitialized = true;
+    // =====================================================================
+    //  4. CONTROLE DE FERRAMENTAS
+    // =====================================================================
+    function runToolControlLogic() {
+        const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
+        const container = adminSystemViewContainer;
         
         const toolRef = database.ref('ferramentas');
+        trackFirebaseRef(toolRef);
         let toolsData = {};
         let employeesData = {};
         let projectsData = {};
 
-        // Modals
-        const toolItemModal = document.getElementById('tool-item-modal');
-        const toolAssignModal = document.getElementById('tool-assign-modal');
-        const toolMaintenanceModal = document.getElementById('tool-maintenance-modal');
-        const toolHistoryModal = document.getElementById('tool-history-modal');
-
-        // Forms and other elements
-        const toolItemForm = document.getElementById('tool-item-form');
-        const toolAssignForm = document.getElementById('tool-assign-form');
-        const toolMaintenanceForm = document.getElementById('tool-maintenance-form');
-        const toolTableBody = document.getElementById('tool-table-body');
-        const filterToolName = document.getElementById('filter-tool-name');
-        const filterToolCode = document.getElementById('filter-tool-code');
-        const filterToolStatus = document.getElementById('filter-tool-status');
-        const btnViewToolHistory = document.getElementById('btn-view-tool-history');
-        const toolHistoryModalClose = document.getElementById('tool-history-modal-close');
-        const selectToolHistory = document.getElementById('select-tool-history');
-        const toolHistoryLog = document.getElementById('tool-history-log');
-
-        const addToolHistory = (toolId, action) => {
-            const historyEntry = {
-                date: new Date().toISOString(),
-                action: action,
-            };
-            toolRef.child(toolId).child('historico').push(historyEntry);
-        };
-
-        // Pre-carrega funcionários e obras
         database.ref('funcionarios').once('value', snapshot => { employeesData = snapshot.val() || {}; });
         database.ref('clientes').once('value', snapshot => { projectsData = snapshot.val() || {}; });
 
-        const openModal = (modalId, data = {}) => {
-            const modal = document.getElementById(modalId);
+        const toolItemModal = container.querySelector('#tool-item-modal');
+        const toolAssignModal = container.querySelector('#tool-assign-modal');
+        const toolMaintenanceModal = container.querySelector('#tool-maintenance-modal');
+        const toolHistoryModal = container.querySelector('#tool-history-modal');
+
+        const toolItemForm = container.querySelector('#tool-item-form');
+        const toolAssignForm = container.querySelector('#tool-assign-form');
+        const toolMaintenanceForm = container.querySelector('#tool-maintenance-form');
+        const toolTableBody = container.querySelector('#tool-table-body');
+        const filterToolName = container.querySelector('#filter-tool-name');
+        const filterToolCode = container.querySelector('#filter-tool-code');
+        const filterToolStatus = container.querySelector('#filter-tool-status');
+        const btnViewToolHistory = container.querySelector('#btn-view-tool-history');
+        const toolHistoryModalClose = container.querySelector('#tool-history-modal-close');
+        const selectToolHistory = container.querySelector('#select-tool-history');
+        const toolHistoryLog = container.querySelector('#tool-history-log');
+
+        const addToolHistory = (toolId, action) => {
+            database.ref(`ferramentas/${toolId}/historico`).push({ date: new Date().toISOString(), action: action });
+        };
+        
+        const openModal = (modal, data = {}) => {
             if (!modal) return;
             const form = modal.querySelector('form');
             if (form) form.reset();
+            const modalId = modal.id;
 
             if (modalId === 'tool-item-modal') {
                 modal.querySelector('#tool-item-modal-title').textContent = data.id ? 'Editar Ferramenta' : 'Adicionar Ferramenta';
@@ -941,16 +1128,12 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (modalId === 'tool-assign-modal') {
                 modal.querySelector('#tool-assign-modal-title').textContent = `Alocar: ${data.nome}`;
                 modal.querySelector('#tool-assign-id').value = data.id || '';
-                
                 const employeeSelect = modal.querySelector('#tool-assign-employee');
                 const projectSelect = modal.querySelector('#tool-assign-project');
-                
                 employeeSelect.innerHTML = '<option value="">Selecione um funcionário</option>';
                 for(const key in employeesData) { employeeSelect.innerHTML += `<option value="${employeesData[key].nome}">${employeesData[key].nome}</option>`; }
-
                 projectSelect.innerHTML = '<option value="">Selecione uma obra</option>';
                 for(const key in projectsData) { projectSelect.innerHTML += `<option value="${projectsData[key].nome}">${projectsData[key].nome}</option>`; }
-
                 modal.querySelector('#tool-assign-date').value = new Date().toISOString().split('T')[0];
             } else if(modalId === 'tool-maintenance-modal') {
                 modal.querySelector('#tool-maintenance-modal-title').textContent = `Manutenção: ${data.nome}`;
@@ -961,71 +1144,51 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         const closeToolModals = () => {
-            toolItemModal.style.display = 'none';
-            toolAssignModal.style.display = 'none';
-            toolMaintenanceModal.style.display = 'none';
-            toolHistoryModal.style.display = 'none';
+            if(toolItemModal) toolItemModal.style.display = 'none';
+            if(toolAssignModal) toolAssignModal.style.display = 'none';
+            if(toolMaintenanceModal) toolMaintenanceModal.style.display = 'none';
+            if(toolHistoryModal) toolHistoryModal.style.display = 'none';
         };
 
-        document.getElementById('btn-add-tool').addEventListener('click', () => openModal('tool-item-modal'));
-        document.getElementById('tool-item-modal-close').addEventListener('click', closeToolModals);
-        document.getElementById('tool-assign-modal-close').addEventListener('click', closeToolModals);
-        document.getElementById('tool-maintenance-modal-close').addEventListener('click', closeToolModals);
-        toolHistoryModalClose.addEventListener('click', closeToolModals);
+        addTrackedListener(container.querySelector('#btn-add-tool'), 'click', () => openModal(toolItemModal));
+        addTrackedListener(container.querySelector('#tool-item-modal-close'), 'click', closeToolModals);
+        addTrackedListener(container.querySelector('#tool-assign-modal-close'), 'click', closeToolModals);
+        addTrackedListener(container.querySelector('#tool-maintenance-modal-close'), 'click', closeToolModals);
+        addTrackedListener(toolHistoryModalClose, 'click', closeToolModals);
         
-        toolItemForm.addEventListener('submit', e => {
+        addTrackedListener(toolItemForm, 'submit', e => {
             e.preventDefault();
-            const id = document.getElementById('tool-item-id').value;
-            const data = {
-                nome: document.getElementById('tool-item-name').value,
-                marca: document.getElementById('tool-item-brand').value,
-                modelo: document.getElementById('tool-item-model').value,
-                codigo: document.getElementById('tool-item-code').value,
-                dataCompra: document.getElementById('tool-item-buy-date').value,
-                valor: parseFloat(document.getElementById('tool-item-value').value) || 0,
-            };
-            
+            const id = toolItemForm.querySelector('#tool-item-id').value;
+            const data = { nome: toolItemForm.querySelector('#tool-item-name').value, marca: toolItemForm.querySelector('#tool-item-brand').value, modelo: toolItemForm.querySelector('#tool-item-model').value, codigo: toolItemForm.querySelector('#tool-item-code').value, dataCompra: toolItemForm.querySelector('#tool-item-buy-date').value, valor: parseFloat(toolItemForm.querySelector('#tool-item-value').value) || 0 };
             let promise;
             if (id) {
                 promise = toolRef.child(id).update(data);
                 addToolHistory(id, `Dados da ferramenta atualizados.`);
             } else {
                 data.status = 'Disponível';
-                promise = toolRef.push(data).then(newRef => {
-                    addToolHistory(newRef.key, `Ferramenta criada com status 'Disponível'.`);
-                });
+                promise = toolRef.push(data).then(newRef => addToolHistory(newRef.key, `Ferramenta criada com status 'Disponível'.`));
             }
             promise.then(closeToolModals).catch(err => console.error(err));
         });
         
-        toolAssignForm.addEventListener('submit', e => {
+        addTrackedListener(toolAssignForm, 'submit', e => {
             e.preventDefault();
-            const id = document.getElementById('tool-assign-id').value;
-            const employee = document.getElementById('tool-assign-employee').value;
-            const project = document.getElementById('tool-assign-project').value;
-            const updates = {
-                status: 'Em Uso',
-                responsavel: employee,
-                local: project,
-                dataRetirada: document.getElementById('tool-assign-date').value,
-            };
+            const id = toolAssignForm.querySelector('#tool-assign-id').value;
+            const employee = toolAssignForm.querySelector('#tool-assign-employee').value;
+            const project = toolAssignForm.querySelector('#tool-assign-project').value;
+            const updates = { status: 'Em Uso', responsavel: employee, local: project, dataRetirada: toolAssignForm.querySelector('#tool-assign-date').value };
             toolRef.child(id).update(updates).then(() => {
                 addToolHistory(id, `Alocada para ${employee} na obra ${project}.`);
                 closeToolModals();
             });
         });
         
-        toolMaintenanceForm.addEventListener('submit', e => {
+        addTrackedListener(toolMaintenanceForm, 'submit', e => {
             e.preventDefault();
-            const id = document.getElementById('tool-maintenance-id').value;
+            const id = toolMaintenanceForm.querySelector('#tool-maintenance-id').value;
             const oldTool = toolsData[id];
-            const status = document.getElementById('tool-maintenance-status').value;
-            const updates = {
-                status: status,
-                proximaManutencao: document.getElementById('tool-maintenance-next-date').value,
-                responsavel: status === 'Disponível' ? null : oldTool.responsavel,
-                local: status === 'Disponível' ? null : oldTool.local,
-            };
+            const status = toolMaintenanceForm.querySelector('#tool-maintenance-status').value;
+            const updates = { status: status, proximaManutencao: toolMaintenanceForm.querySelector('#tool-maintenance-next-date').value, responsavel: status === 'Disponível' ? null : oldTool.responsavel, local: status === 'Disponível' ? null : oldTool.local };
             toolRef.child(id).update(updates).then(() => {
                 addToolHistory(id, `Status alterado de '${oldTool.status}' para '${status}'.`);
                 closeToolModals();
@@ -1033,16 +1196,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const renderToolTable = () => {
+            if (!toolTableBody) return;
             const nameQuery = filterToolName.value.toLowerCase();
             const codeQuery = filterToolCode.value.toLowerCase();
             const statusQuery = filterToolStatus.value;
             toolTableBody.innerHTML = '';
             
             Object.entries(toolsData).filter(([_, tool]) => {
-                const nameMatch = (tool.nome || '').toLowerCase().includes(nameQuery);
-                const codeMatch = (tool.codigo || '').toLowerCase().includes(codeQuery);
-                const statusMatch = statusQuery === 'all' || tool.status === statusQuery;
-                return nameMatch && codeMatch && statusMatch;
+                return (tool.nome || '').toLowerCase().includes(nameQuery) && (tool.codigo || '').toLowerCase().includes(codeQuery) && (statusQuery === 'all' || tool.status === statusQuery);
             }).forEach(([id, tool]) => {
                 const row = toolTableBody.insertRow();
                 let statusColorClass = '';
@@ -1051,21 +1212,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'Em Uso': statusColorClass = 'status-dot-yellow'; break;
                     case 'Em Manutenção': statusColorClass = 'status-dot-red'; break;
                 }
-                
-                if(tool.status === 'Em Manutenção') {
-                    row.className = 'maintenance-due';
-                }
-
-                let location = 'Depósito';
-                if(tool.status === 'Em Uso') {
-                    location = `${tool.responsavel} @ ${tool.local}`;
-                } else if(tool.status === 'Em Manutenção') {
-                    location = 'Manutenção';
-                }
-
+                if(tool.status === 'Em Manutenção') row.className = 'maintenance-due';
+                let location = tool.status === 'Em Uso' ? `${tool.responsavel} @ ${tool.local}` : (tool.status === 'Em Manutenção' ? 'Manutenção' : 'Depósito');
                 row.innerHTML = `
-                    <td data-label="Ferramenta">${tool.nome || 'N/A'}</td>
-                    <td data-label="Código">${tool.codigo || 'N/A'}</td>
+                    <td data-label="Ferramenta">${tool.nome || 'N/A'}</td><td data-label="Código">${tool.codigo || 'N/A'}</td>
                     <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Ações">
@@ -1073,47 +1223,27 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
                         <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
                         <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
-                    </td>
-                `;
+                    </td>`;
             });
             lucide.createIcons();
         };
         
-        const displayToolHistory = (toolId) => {
-            toolHistoryLog.innerHTML = '<p>Carregando histórico...</p>';
-            const selectedTool = toolsData[toolId];
-            if (!selectedTool || !selectedTool.historico) {
-                toolHistoryLog.innerHTML = '<p>Nenhum histórico encontrado para esta ferramenta.</p>';
-                return;
-            }
-
-            const historyEntries = Object.values(selectedTool.historico).sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            toolHistoryLog.innerHTML = historyEntries.map(entry => {
-                const date = new Date(entry.date).toLocaleString('pt-BR');
-                return `<div class="history-item">
-                    ${entry.action}
-                    <span>${date}</span>
-                </div>`;
-            }).join('');
-        };
-
-        btnViewToolHistory.addEventListener('click', () => {
+        addTrackedListener(btnViewToolHistory, 'click', () => {
             selectToolHistory.innerHTML = '<option value="">Selecione uma ferramenta...</option>';
             Object.entries(toolsData).forEach(([id, tool]) => {
-                const displayText = `${tool.nome} (${tool.codigo || 'S/C'})`;
-                selectToolHistory.innerHTML += `<option value="${id}">${displayText}</option>`;
+                selectToolHistory.innerHTML += `<option value="${id}">${tool.nome} (${tool.codigo || 'S/C'})</option>`;
             });
             toolHistoryLog.innerHTML = '<p>Selecione uma ferramenta para ver seu histórico.</p>';
             toolHistoryModal.style.display = 'block';
         });
 
-        selectToolHistory.addEventListener('change', () => {
+        addTrackedListener(selectToolHistory, 'change', () => {
             const selectedToolId = selectToolHistory.value;
-            if (selectedToolId) {
-                displayToolHistory(selectedToolId);
+            if (selectedToolId && toolsData[selectedToolId]?.historico) {
+                const historyEntries = Object.values(toolsData[selectedToolId].historico).sort((a, b) => new Date(b.date) - new Date(a.date));
+                toolHistoryLog.innerHTML = historyEntries.map(entry => `<div class="history-item">${entry.action}<span>${new Date(entry.date).toLocaleString('pt-BR')}</span></div>`).join('');
             } else {
-                toolHistoryLog.innerHTML = '<p>Selecione uma ferramenta para ver seu histórico.</p>';
+                toolHistoryLog.innerHTML = '<p>Nenhum histórico encontrado para esta ferramenta.</p>';
             }
         });
         
@@ -1124,60 +1254,22 @@ document.addEventListener('DOMContentLoaded', function () {
             renderToolTable();
         });
 
-        [filterToolName, filterToolCode, filterToolStatus].forEach(el => el.addEventListener('input', renderToolTable));
+        [filterToolName, filterToolCode, filterToolStatus].forEach(el => addTrackedListener(el, 'input', renderToolTable));
 
-        toolTableBody.addEventListener('click', (e) => {
+        addTrackedListener(toolTableBody, 'click', (e) => {
             const button = e.target.closest('.btn-status');
             if (!button) return;
             const id = button.dataset.id;
             const tool = toolsData[id];
-            
-            if (button.classList.contains('btn-edit-tool')) {
-                openModal('tool-item-modal', tool);
-            } else if (button.classList.contains('btn-assign-tool')) {
-                openModal('tool-assign-modal', tool);
-            } else if (button.classList.contains('btn-maintenance-tool')) {
-                openModal('tool-maintenance-modal', tool);
-            } else if (button.classList.contains('btn-return-tool')) {
+            if (button.classList.contains('btn-edit-tool')) openModal(toolItemModal, tool);
+            else if (button.classList.contains('btn-assign-tool')) openModal(toolAssignModal, tool);
+            else if (button.classList.contains('btn-maintenance-tool')) openModal(toolMaintenanceModal, tool);
+            else if (button.classList.contains('btn-return-tool')) {
                 const updates = { status: 'Disponível', responsavel: null, local: null, dataRetirada: null };
-                toolRef.child(id).update(updates).then(() => {
-                     addToolHistory(id, `Devolvida do status '${tool.status}'. Responsável anterior: ${tool.responsavel || 'N/A'}.`);
-                });
+                toolRef.child(id).update(updates).then(() => addToolHistory(id, `Devolvida. Responsável anterior: ${tool.responsavel || 'N/A'}.`));
             }
         });
-    };
-
-
-    // --- EVENT LISTENERS DE NAVEGAÇÃO PRINCIPAL ---
-    btnGoToRentals.addEventListener('click', () => {
-        showTopLevelView('rental-app-wrapper');
-        initializeRentalApp();
-    });
-
-    btnGoToStock.addEventListener('click', () => {
-        showTopLevelView('stock-control-wrapper');
-        initializeStockControlApp();
-    });
-    
-    btnGoToCars.addEventListener('click', () => {
-        showTopLevelView('car-control-wrapper');
-        initializeCarControlApp();
-    });
-
-    btnGoToTools.addEventListener('click', () => {
-        showTopLevelView('tool-control-wrapper');
-        initializeToolControlApp();
-    });
-    
-    backToServicesButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            showTopLevelView('service-selection-view');
-            window.location.hash = ''; 
-        });
-    });
-
-    // --- CARGA INICIAL ---
-    showTopLevelView('service-selection-view');
-    lucide.createIcons();
+        
+        return cleanup;
+    }
 });
