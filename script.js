@@ -49,11 +49,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let funcionariosData = {};
     let activeSystemCleanup = () => {};
 
-    // --- LISTENERS DE MODAIS GLOBAIS ---
-    document.getElementById('car-update-km-modal-close').addEventListener('click', () => {
-        document.getElementById('car-update-km-modal').style.display = 'none';
-    });
-
     // --- CARREGAMENTO DE DADOS GLOBAIS ---
     function loadEmployeeData() {
         const ref = database.ref('funcionarios');
@@ -154,7 +149,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!tableBody) return;
         tableBody.innerHTML = '';
         if (funcionariosData) {
-            Object.keys(funcionariosData).forEach(id => {
+            Object.keys(funcionariosData).sort((a, b) => {
+                const nomeA = funcionariosData[a].nome || '';
+                const nomeB = funcionariosData[b].nome || '';
+                return nomeA.localeCompare(nomeB);
+            }).forEach(id => {
                 const funcionario = funcionariosData[id];
                 const row = tableBody.insertRow();
                 row.innerHTML = `
@@ -189,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const allPermissions = {
             canViewRentals: "Ver Gerenciador de Obras",
             canViewStock: "Ver Controle de Estoque",
+            canManageStock: "Gerenciar Estoque (Acesso Total)",
             canViewCars: "Ver Controle de Carros",
             canViewTools: "Ver Controle de Ferramentas"
         };
@@ -304,13 +304,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateKmModal.querySelector('#car-update-km-id').value = carId;
         updateKmForm.reset();
 
+        // Attach a one-time listener for the form submission
         updateKmForm.onsubmit = (e) => {
             e.preventDefault();
             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
             if (newKm >= (carData.kmAtual || 0)) {
                 database.ref(`veiculos/${carId}`).update({ kmAtual: newKm }).then(() => {
                     updateKmModal.style.display = 'none';
-                    renderEmployeeDashboard(sessionStorage.getItem('loggedInEmployeeId')); 
+                    renderEmployeeDashboard(sessionStorage.getItem('loggedInEmployeeId')); // Refresh dashboard
                 });
             } else {
                 alert('A nova quilometragem deve ser maior ou igual à atual.');
@@ -327,19 +328,15 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = '<p>A carregar as suas informações...</p>';
         
         const getDueDateStatus = (proximoVencimentoStr) => {
-            if (!proximoVencimentoStr) return '';
+            if (!proximoVencimentoStr) return 'indicator-license-ok';
             const today = new Date();
-            today.setHours(0, 0, 0, 0); 
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(proximoVencimentoStr + 'T03:00:00Z');
+            const diffDays = Math.ceil((dueDate - today) / 864e5);
             
-            const vencimento = new Date(proximoVencimentoStr + 'T03:00:00Z');
-            vencimento.setHours(0, 0, 0, 0);
-
-            const diffTime = vencimento.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays <= 3) return 'indicator-due-danger';
-            if (diffDays <= 7) return 'indicator-due-warning';
-            return '';
+            if (diffDays <= 3) return 'indicator-license-danger';
+            if (diffDays <= 7) return 'indicator-license-warning';
+            return 'indicator-license-ok';
         };
 
         const calcularProximoVencimento = (dataInicioStr, frequencia, reagendamentoAutomatico) => {
@@ -360,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let finalHtml = '';
         let hasContent = false;
 
-        // 1. Locações
+        // 1. Obras
         if (permissions.canViewRentals) {
             const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
             const rentalsData = rentalsSnapshot.val() || {};
@@ -369,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (activeRentals.length > 0) {
                 hasContent = true;
                 let cardsHtml = '';
-                activeRentals.forEach(item => {
+                activeRentals.sort((a,b) => (a.equipamentoNome || '').localeCompare(b.equipamentoNome || '')).forEach(item => {
                     const proximoVencimento = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
                     const indicatorClass = getDueDateStatus(proximoVencimento);
                     cardsHtml += createDetailCard({
@@ -384,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 finalHtml += `
                     <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
-                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Locações</h2>
+                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Minhas Obras</h2>
                         <div class="car-card-grid">${cardsHtml}</div>
                     </section>`;
             }
@@ -399,9 +396,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if(userCars.length > 0) {
                 hasContent = true;
                 let cardsHtml = '';
-                userCars.forEach(car => {
+                userCars.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).forEach(car => {
                     const indicatorClass = getDueDateStatus(car.licenciamento);
-                    const footer = `<button class="action-button secondary btn-update-km-employee" data-id="${car.id}" title="Atualizar KM" style="gap: 0.5rem;"><i data-lucide="gauge-circle"></i> Atualizar KM</button>`;
+                    const footer = `<button class="btn-status btn-update-km-employee" data-id="${car.id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i> Atualizar KM</button>`;
                     cardsHtml += createDetailCard({
                         title: car.nome,
                         subtitle: `Placa: ${car.placa}`,
@@ -430,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if(userTools.length > 0) {
                 hasContent = true;
                 let cardsHtml = '';
-                userTools.forEach(tool => {
+                userTools.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).forEach(tool => {
                     cardsHtml += createDetailCard({
                         title: tool.nome,
                         subtitle: `Código: ${tool.codigo || 'S/C'}`,
@@ -450,14 +447,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         // 4. Estoque
-        if (permissions.canViewStock) {
+        if (permissions.canViewStock || permissions.canManageStock) {
             hasContent = true;
+            const buttonHtml = permissions.canManageStock 
+                ? `<a href="#" id="employee-access-stock-btn" class="action-button secondary">Aceder ao Estoque</a>`
+                : `<p style="margin: 0; font-style: italic;">Acesso apenas para visualização.</p>`;
+
             finalHtml += `
                 <section class="dashboard-category" style="width: 100%;">
                     <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="boxes"></i> Acesso ao Estoque</h2>
                     <div class="list-item" style="background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); flex-direction: row; justify-content: space-between;">
-                        <p style="margin: 0;">Você tem permissão para visualizar e gerenciar o estoque.</p>
-                        <a href="#" class="action-button secondary" onclick="alert('Funcionalidade de acesso rápido em desenvolvimento.')">Aceder ao Estoque</a>
+                        <p style="margin: 0;">Você tem permissão para ${permissions.canManageStock ? 'gerenciar' : 'visualizar'} o estoque.</p>
+                        ${buttonHtml}
                     </div>
                 </section>
             `;
@@ -471,6 +472,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lucide.createIcons();
         
+        // Adicionar event listener para o botão de acesso ao estoque
+        const accessStockBtn = document.getElementById('employee-access-stock-btn');
+        if(accessStockBtn) {
+            accessStockBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showTopLevelView('admin-app-wrapper');
+                showAdminSubView('system', 'stock');
+
+                // Reconfigurar o botão de voltar para retornar ao dashboard do funcionário
+                const backBtn = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
+                if (backBtn) {
+                    const newBackBtn = backBtn.cloneNode(true);
+                    backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+
+                    newBackBtn.addEventListener('click', () => {
+                        showTopLevelView('employee-area-wrapper');
+                    });
+                }
+            });
+        }
+        
+        // Adicionar event listener para os botões de KM
         container.querySelectorAll('.btn-update-km-employee').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const carId = e.currentTarget.dataset.id;
@@ -681,10 +704,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 s: filterStatus.value 
             };
             dataTableBody.innerHTML = '';
-            Object.keys(lancamentosAtuais).filter(key => {
+            
+            const filteredAndSortedKeys = Object.keys(lancamentosAtuais).filter(key => {
                 const i = lancamentosAtuais[key];
-                return i.status !== 'Devolvido' && (i.clienteNome || '').toLowerCase().includes(queries.c) && (i.equipamentoNome || '').toLowerCase().includes(queries.e) && (i.fornecedorNome || '').toLowerCase().includes(queries.fo) && (i.funcionarioNome || '').toLowerCase().includes(queries.fu) && (queries.s === 'all' || i.status === queries.s);
-            }).forEach(key => {
+                return i.status !== 'Devolvido' && 
+                       (i.clienteNome || '').toLowerCase().includes(queries.c) && 
+                       (i.equipamentoNome || '').toLowerCase().includes(queries.e) && 
+                       (i.fornecedorNome || '').toLowerCase().includes(queries.fo) && 
+                       (i.funcionarioNome || '').toLowerCase().includes(queries.fu) && 
+                       (queries.s === 'all' || i.status === queries.s);
+            }).sort((keyA, keyB) => {
+                const nomeA = lancamentosAtuais[keyA].clienteNome || '';
+                const nomeB = lancamentosAtuais[keyB].clienteNome || '';
+                return nomeA.localeCompare(nomeB);
+            });
+
+            filteredAndSortedKeys.forEach(key => {
                 const item = lancamentosAtuais[key];
                 const proximoVencimentoStr = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
                 const row = dataTableBody.insertRow();
@@ -732,6 +767,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const movementModal = container.querySelector('#stock-movement-modal');
         const movementForm = container.querySelector('#stock-movement-form');
         const tableBody = container.querySelector('#stock-table-body');
+        const imagePreviewModal = document.getElementById('image-preview-modal');
+        const imagePreviewModalClose = document.getElementById('image-preview-modal-close');
+        const modalImageContent = document.getElementById('modal-image-content');
         
         const filterName = container.querySelector('#filter-stock-name');
         const filterCode = container.querySelector('#filter-stock-code');
@@ -745,6 +783,7 @@ document.addEventListener('DOMContentLoaded', function () {
             itemForm.querySelector('#stock-item-category').value = item.categoria || '';
             itemForm.querySelector('#stock-item-quantity').value = item.quantidade ?? '';
             itemForm.querySelector('#stock-item-unit').value = item.unidade || 'un';
+            itemForm.querySelector('#stock-item-image').value = item.imageUrl || '';
             itemForm.querySelector('#stock-item-quantity').disabled = !!item.id;
             itemModalTitle.textContent = item.id ? 'Editar Item' : 'Adicionar Novo Item';
             itemModal.style.display = 'block';
@@ -760,11 +799,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const closeModal = () => {
             if(itemModal) itemModal.style.display = 'none';
             if(movementModal) movementModal.style.display = 'none';
+            if(imagePreviewModal) imagePreviewModal.style.display = 'none';
         }
         
         addTrackedListener(container.querySelector('#btn-add-stock-item'), 'click', () => openItemModal());
         addTrackedListener(container.querySelector('#stock-item-modal-close'), 'click', closeModal);
         addTrackedListener(container.querySelector('#stock-movement-modal-close'), 'click', closeModal);
+        addTrackedListener(imagePreviewModalClose, 'click', closeModal);
 
         addTrackedListener(itemForm, 'submit', (e) => {
             e.preventDefault();
@@ -774,6 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 codigo: itemForm.querySelector('#stock-item-code').value,
                 categoria: itemForm.querySelector('#stock-item-category').value,
                 unidade: itemForm.querySelector('#stock-item-unit').value,
+                imageUrl: itemForm.querySelector('#stock-item-image').value,
             };
             
             let promise;
@@ -821,18 +863,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 const codeMatch = (item.codigo || '').toLowerCase().includes(codeQuery);
                 const categoryMatch = (item.categoria || '').toLowerCase().includes(categoryQuery);
                 return nameMatch && codeMatch && categoryMatch;
+            }).sort(([, itemA], [, itemB]) => {
+                return (itemA.nome || '').localeCompare(itemB.nome || '');
             }).forEach(([id, item]) => {
                 const row = tableBody.insertRow();
                 row.className = item.quantidade <= 5 ? 'low-stock' : '';
                 row.innerHTML = `
                     <td data-label="Item">${item.nome}</td>
-                    <td data-label="Código">${item.codigo}</td>
-                    <td data-label="Categoria">${item.categoria}</td>
+                    <td data-label="Código">${item.codigo || ''}</td>
+                    <td data-label="Categoria">${item.categoria || ''}</td>
                     <td data-label="Qtd. Atual">${item.quantidade}</td>
                     <td data-label="Unidade">${item.unidade}</td>
+                    <td data-label="Img.">
+                        ${item.imageUrl ? `<button class="btn-status btn-view-image" data-url="${item.imageUrl}"><i data-lucide="image"></i></button>` : '<span>-</span>'}
+                    </td>
                     <td data-label="Ações">
-                        <button class="btn-status btn-edit-stock-item" data-id="${id}"><i data-lucide="edit"></i></button>
-                        <button class="btn-status btn-move-stock-item" data-id="${id}"><i data-lucide="arrow-right-left"></i></button>
+                        <button class="btn-status btn-edit-stock-item" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                        <button class="btn-status btn-move-stock-item" data-id="${id}" title="Movimentar"><i data-lucide="arrow-right-left"></i></button>
                     </td>
                 `;
             });
@@ -853,8 +900,14 @@ document.addEventListener('DOMContentLoaded', function () {
         addTrackedListener(tableBody, 'click', (e) => {
             const editBtn = e.target.closest('.btn-edit-stock-item');
             const moveBtn = e.target.closest('.btn-move-stock-item');
+            const viewImageBtn = e.target.closest('.btn-view-image');
+
             if (editBtn) { openItemModal(stockItemsData[editBtn.dataset.id]); }
             if (moveBtn) { openMovementModal(stockItemsData[moveBtn.dataset.id]); }
+            if (viewImageBtn) {
+                modalImageContent.src = viewImageBtn.dataset.url;
+                imagePreviewModal.style.display = 'block';
+            }
         });
         
         return cleanup;
@@ -877,11 +930,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const carItemModal = container.querySelector('#car-item-modal');
-        const updateKmModal = document.getElementById('car-update-km-modal'); // Use global modal
+        const updateKmModal = container.querySelector('#car-update-km-modal');
         const maintenanceModal = container.querySelector('#car-maintenance-modal');
         
         const carItemForm = container.querySelector('#car-item-form');
-        const updateKmForm = document.getElementById('car-update-km-form'); // Use global form
+        const updateKmForm = container.querySelector('#car-update-km-form');
         const maintenanceForm = container.querySelector('#car-maintenance-form');
 
         const carCardContainer = container.querySelector('#car-card-container');
@@ -934,19 +987,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         addTrackedListener(container.querySelector('#btn-add-car'), 'click', () => openCarModal(carItemModal));
         addTrackedListener(container.querySelector('#car-item-modal-close'), 'click', closeCarModals);
+        addTrackedListener(container.querySelector('#car-update-km-modal-close'), 'click', closeCarModals);
         addTrackedListener(container.querySelector('#car-maintenance-modal-close'), 'click', closeCarModals);
-        
-        addTrackedListener(updateKmForm, 'submit', (e) => {
-             e.preventDefault();
-             const id = updateKmForm.querySelector('#car-update-km-id').value;
-             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
-             const carData = carItemsData[id];
-             if (id && carData && newKm >= (carData.kmAtual || 0)) {
-                 carRef.child(id).update({ kmAtual: newKm }).then(closeCarModals);
-             } else {
-                 alert('A nova quilometragem deve ser maior ou igual à atual.');
-             }
-        });
 
         addTrackedListener(carItemForm, 'submit', (e) => {
             e.preventDefault();
@@ -962,6 +1004,17 @@ document.addEventListener('DOMContentLoaded', function () {
             };
             const promise = id ? carRef.child(id).update(data) : carRef.push(data);
             promise.then(closeCarModals).catch(err => console.error("Erro:", err));
+        });
+
+        addTrackedListener(updateKmForm, 'submit', (e) => {
+             e.preventDefault();
+             const id = updateKmForm.querySelector('#car-update-km-id').value;
+             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
+             if (id && newKm >= (carItemsData[id].kmAtual || 0)) {
+                 carRef.child(id).update({ kmAtual: newKm }).then(closeCarModals);
+             } else {
+                 alert('A nova quilometragem deve ser maior ou igual à atual.');
+             }
         });
         
         addTrackedListener(maintenanceForm, 'submit', (e) => {
@@ -998,32 +1051,34 @@ document.addEventListener('DOMContentLoaded', function () {
             
             Object.entries(carItemsData).filter(([_, car]) => {
                 return (car.nome || '').toLowerCase().includes(nameQuery) && (car.placa || '').toLowerCase().includes(plateQuery);
+            }).sort(([, carA], [, carB]) => {
+                return (carA.nome || '').localeCompare(carB.nome || '');
             }).forEach(([id, car]) => {
                 const indicators = [];
                 const kmAlertThreshold = 1000;
-                const dateAlertThreshold = 30; // days
+                const dateAlertThreshold = 30 * 24 * 60 * 60 * 1000;
 
                 if (car.proximaTrocaOleoKM) {
                     if (car.kmAtual >= car.proximaTrocaOleoKM) {
-                        indicators.push('<div class="indicator-bar indicator-due-danger" title="Troca de óleo vencida"></div>');
+                        indicators.push('<div class="indicator-bar indicator-oil-danger" title="Troca de óleo vencida"></div>');
                     } else if (car.kmAtual >= car.proximaTrocaOleoKM - kmAlertThreshold) {
-                        indicators.push('<div class="indicator-bar indicator-due-warning" title="Troca de óleo próxima"></div>');
+                        indicators.push('<div class="indicator-bar indicator-oil-warning" title="Troca de óleo próxima"></div>');
                     }
                 }
                 
                 if (car.licenciamento) {
-                    const today = new Date(); today.setHours(0,0,0,0);
-                    const licenseDate = new Date(car.licenciamento + 'T03:00:00Z'); licenseDate.setHours(0,0,0,0);
-                    const diffDays = Math.ceil((licenseDate - today) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 0) {
-                         indicators.push('<div class="indicator-bar indicator-due-danger" title="Licenciamento vencido"></div>');
-                    } else if (diffDays <= dateAlertThreshold) {
-                         indicators.push('<div class="indicator-bar indicator-due-warning" title="Licenciamento próximo"></div>');
+                    const licenseDate = new Date(car.licenciamento);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (licenseDate < today) {
+                         indicators.push('<div class="indicator-bar indicator-license-danger" title="Licenciamento vencido"></div>');
+                    } else if (licenseDate - today < dateAlertThreshold) {
+                         indicators.push('<div class="indicator-bar indicator-license-warning" title="Licenciamento próximo"></div>');
                     }
                 }
                 
                 const formatKm = (km) => km ? km.toLocaleString('pt-BR') : '-';
-                const formatDate = (dateString) => dateString ? new Date(dateString + 'T03:00:00Z').toLocaleDateString('pt-BR') : '-';
+                const formatDate = (dateString) => dateString ? new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
                 
                 const card = document.createElement('div');
                 card.className = 'car-card';
@@ -1064,10 +1119,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const button = e.target.closest('.btn-status');
             if(!button) return;
             const id = button.dataset.id;
-            const car = carItemsData[id];
-            if (button.classList.contains('btn-edit-car')) openCarModal(carItemModal, car);
-            if (button.classList.contains('btn-update-km')) openCarModal(updateKmModal, car);
-            if (button.classList.contains('btn-add-maintenance')) openCarModal(maintenanceModal, car);
+            if (button.classList.contains('btn-edit-car')) openCarModal(carItemModal, carItemsData[id]);
+            if (button.classList.contains('btn-update-km')) openCarModal(updateKmModal, carItemsData[id]);
+            if (button.classList.contains('btn-add-maintenance')) openCarModal(maintenanceModal, carItemsData[id]);
         });
         
         return cleanup;
@@ -1204,6 +1258,8 @@ document.addEventListener('DOMContentLoaded', function () {
             
             Object.entries(toolsData).filter(([_, tool]) => {
                 return (tool.nome || '').toLowerCase().includes(nameQuery) && (tool.codigo || '').toLowerCase().includes(codeQuery) && (statusQuery === 'all' || tool.status === statusQuery);
+            }).sort(([, toolA], [, toolB]) => {
+                return (toolA.nome || '').localeCompare(toolB.nome || '');
             }).forEach(([id, tool]) => {
                 const row = toolTableBody.insertRow();
                 let statusColorClass = '';
@@ -1230,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         addTrackedListener(btnViewToolHistory, 'click', () => {
             selectToolHistory.innerHTML = '<option value="">Selecione uma ferramenta...</option>';
-            Object.entries(toolsData).forEach(([id, tool]) => {
+            Object.entries(toolsData).sort(([, toolA], [, toolB]) => (toolA.nome || '').localeCompare(toolB.nome || '')).forEach(([id, tool]) => {
                 selectToolHistory.innerHTML += `<option value="${id}">${tool.nome} (${tool.codigo || 'S/C'})</option>`;
             });
             toolHistoryLog.innerHTML = '<p>Selecione uma ferramenta para ver seu histórico.</p>';

@@ -842,16 +842,13 @@ td[data-label="Status"] div {
     flex-grow: 1;
 }
 
-.car-card .indicator-oil-warning,
-.car-card .indicator-due-warning,
-.car-card .indicator-tool-inuse { 
-    background-color: var(--warning-color); 
-}
+.car-card .indicator-oil-warning { background-color: var(--warning-color); }
+.car-card .indicator-oil-danger { background-color: var(--danger-color); }
+.car-card .indicator-license-warning { background-color: var(--warning-color); }
+.car-card .indicator-license-danger { background-color: var(--danger-color); }
+.car-card .indicator-license-ok { background-color: var(--success-color); }
+.car-card .indicator-tool-inuse { background-color: var(--secondary-color); }
 
-.car-card .indicator-oil-danger,
-.car-card .indicator-due-danger { 
-    background-color: var(--danger-color); 
-}
 
 .car-card-content {
     flex-grow: 1;
