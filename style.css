@@ -25,6 +25,9 @@
     --due-ok-bg: #F0FFF4;
     --low-stock-bg: #FEFBC8; 
     --maintenance-due-bg: #FEFBC8; /* Amarelo bem claro para manutenção */
+    --priority-high-bg: #FED7D7;
+    --priority-medium-bg: #FEFBC8;
+    --priority-low-bg: #C6F6D5;
 }
 
 body.dark-mode {
@@ -52,6 +55,9 @@ body.dark-mode {
     --due-ok-bg: rgba(56, 161, 105, 0.2);
     --low-stock-bg: rgba(246, 224, 94, 0.2);
     --maintenance-due-bg: rgba(246, 224, 94, 0.25);
+    --priority-high-bg: rgba(229, 62, 62, 0.25);
+    --priority-medium-bg: rgba(214, 158, 46, 0.25);
+    --priority-low-bg: rgba(56, 161, 105, 0.25);
 }
 
 * {
@@ -532,7 +538,7 @@ tbody tr:hover {
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
-    color: var(--secondary-color);
+    color: var(--text-secondary);
 }
 .btn-status:hover {
     background-color: #E2E8F0;
@@ -898,40 +904,164 @@ td[data-label="Status"] div {
     border-top: 1px solid var(--border-color);
 }
 
-@media (min-width: 769px) {
-    .form-grid { grid-template-columns: repeat(3, 1fr); }
-    .form-group-obs { grid-column: span 2; }
+/* Estilos para Lembretes */
+#reminders-container {
+    margin-bottom: 2.5rem;
 }
 
+.reminder-card {
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    border-left-width: 5px;
+    border-left-style: solid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.reminder-card.priority-alta {
+    background-color: var(--priority-high-bg);
+    border-left-color: var(--danger-color);
+}
+.reminder-card.priority-media {
+    background-color: var(--priority-medium-bg);
+    border-left-color: var(--warning-color);
+}
+.reminder-card.priority-baixa {
+    background-color: var(--priority-low-bg);
+    border-left-color: var(--success-color);
+}
+
+.reminder-card p {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* --- ESTILOS MOBILE --- */
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
         margin: 1.5rem auto;
     }
-    header, .detail-header { flex-direction: column; text-align: center; gap: 1rem; }
-    .back-to-services-button { top: 20px; left: 20px; transform: none; }
-    header h1, .detail-header h1 { font-size: 2rem; }
-    .header-text, .detail-header .header-text { text-align: center; }
-    .form-grid { grid-template-columns: 1fr; }
-    .table-header { flex-direction: column; align-items: stretch; }
-    .table-filters { grid-template-columns: 1fr; }
-    .vencimento-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
-    .list-item { flex-direction: column; align-items: stretch; gap: 1rem; }
-    .entry-form-container, .data-table-container, .list-container { padding: 1.5rem; }
 
-    .table-wrapper.card-view { border: none; overflow-x: hidden; }
-    .table-wrapper.card-view table, .table-wrapper.card-view thead, .table-wrapper.card-view tbody, .table-wrapper.card-view th, .table-wrapper.card-view td, .table-wrapper.card-view tr { display: block; }
-    .table-wrapper.card-view thead { display: none; }
-    .table-wrapper.card-view tr { margin-bottom: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); background-color: var(--card-background); padding: 0; position: relative; overflow: hidden; }
-    .table-wrapper.card-view tr::after { content: ''; position: absolute; top: 0; left: 0; width: 5px; height: 100%; background-color: transparent; transition: background-color 0.3s ease; }
-    .table-wrapper.card-view tr.due-urgent::after, .table-wrapper.card-view tr.maintenance-due::after { background-color: var(--danger-color); }
-    .table-wrapper.card-view tr.due-soon::after { background-color: var(--warning-color); }
-    .table-wrapper.card-view tr.due-ok::after { background-color: var(--success-color); }
-    .table-wrapper.card-view tr.low-stock::after { background-color: var(--warning-color); }
-    .table-wrapper.card-view tr:last-child { margin-bottom: 0; }
-    .table-wrapper.card-view td { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem; text-align: right; border-bottom: 1px solid var(--border-color); white-space: normal; }
-    .table-wrapper.card-view td:last-child { border-bottom: none; }
-    .table-wrapper.card-view td::before { content: attr(data-label); font-weight: 600; text-align: left; color: var(--text-primary); margin-right: 1rem; }
-    .table-wrapper.card-view .status { text-align: right; width: auto; }
-    .table-wrapper.card-view .btn-status { justify-self: flex-end; }
+    header, .detail-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    .back-to-services-button {
+        top: 15px;
+        left: 15px;
+        transform: none;
+    }
+
+    header h1, .detail-header h1 {
+        font-size: 1.75rem;
+    }
+
+    header p, .detail-header p {
+        font-size: 1rem;
+    }
+
+    .header-text, .detail-header .header-text {
+        text-align: center;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .entry-form-container, .data-table-container, .list-container {
+        padding: 1.5rem;
+    }
+
+    .table-wrapper {
+        border: none;
+        overflow-x: hidden;
+    }
+
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    thead {
+        display: none;
+    }
+
+    tr {
+        margin-bottom: 1.25rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        background-color: var(--card-background);
+        overflow: hidden;
+    }
+    
+    tr:last-child {
+        margin-bottom: 0;
+    }
+    
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.85rem 1.25rem;
+        text-align: right;
+        border-bottom: 1px solid var(--border-color);
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-align: left;
+        color: var(--text-primary);
+        margin-right: 1rem;
+    }
+
+    .status {
+        text-align: right;
+        width: auto;
+    }
+    
+    .table-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .table-actions .action-button,
+    .table-actions .btn-status {
+        padding: 8px;
+    }
+    
+    .table-actions .action-button span {
+        display: none;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+        padding: 2rem;
+    }
+
+    .car-card-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reminder-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
 }

@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const currentVal = employeeSelect.value;
         employeeSelect.innerHTML = '<option value="">Selecione o seu nome</option>';
         if (funcionariosData && Object.keys(funcionariosData).length > 0) {
-            Object.keys(funcionariosData).forEach(id => {
+            Object.keys(funcionariosData).sort((a, b) => (funcionariosData[a].nome || '').localeCompare(funcionariosData[b].nome || '')).forEach(id => {
                 employeeSelect.innerHTML += `<option value="${id}">${funcionariosData[id].nome}</option>`;
             });
         } else {
@@ -159,9 +159,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.innerHTML = `
                     <td data-label="Funcionário">${funcionario.nome}</td>
                     <td data-label="Ações">
-                        <button class="action-button secondary btn-edit-permissions" data-id="${id}">
-                            <i data-lucide="key-round"></i> Editar Acessos
-                        </button>
+                        <div class="table-actions">
+                            <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
+                                <i data-lucide="key-round"></i> <span>Acessos</span>
+                            </button>
+                            <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
+                                <i data-lucide="bell-plus"></i> <span>Lembrete</span>
+                            </button>
+                        </div>
                     </td>
                 `;
             });
@@ -170,6 +175,10 @@ document.addEventListener('DOMContentLoaded', function () {
         
         document.querySelectorAll('.btn-edit-permissions').forEach(btn => {
             btn.onclick = (e) => openPermissionModal(e.currentTarget.dataset.id);
+        });
+
+        document.querySelectorAll('.btn-add-reminder').forEach(btn => {
+            btn.onclick = (e) => openReminderModal(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
         });
     }
 
@@ -235,6 +244,42 @@ document.addEventListener('DOMContentLoaded', function () {
         }).catch(err => {
             console.error(err);
             alert('Erro ao atualizar acessos.');
+        });
+    };
+
+    function openReminderModal(employeeId, employeeName) {
+        const modal = document.getElementById('reminder-modal');
+        const form = document.getElementById('reminder-form');
+        form.reset();
+        document.getElementById('reminder-employee-id').value = employeeId;
+        document.getElementById('reminder-employee-name').value = employeeName;
+        modal.style.display = 'block';
+    }
+
+    document.getElementById('reminder-modal-close').onclick = () => {
+        document.getElementById('reminder-modal').style.display = 'none';
+    };
+
+    document.getElementById('reminder-form').onsubmit = function(e) {
+        e.preventDefault();
+        const employeeId = document.getElementById('reminder-employee-id').value;
+        const message = document.getElementById('reminder-message').value;
+        const priority = document.getElementById('reminder-priority').value;
+        const expiresAt = document.getElementById('reminder-expires-at').value;
+
+        const reminderData = {
+            message,
+            priority,
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            expiresAt: expiresAt || null
+        };
+
+        database.ref(`lembretes/${employeeId}`).push(reminderData).then(() => {
+            alert('Lembrete enviado com sucesso!');
+            document.getElementById('reminder-modal').style.display = 'none';
+        }).catch(err => {
+            console.error("Erro ao enviar lembrete:", err);
+            alert("Erro ao enviar lembrete.");
         });
     };
 
@@ -320,11 +365,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateKmModal.style.display = 'block';
     }
+    
+    // Global listener for the KM modal close button
+    const carUpdateKmModal = document.getElementById('car-update-km-modal');
+    const carUpdateKmModalClose = document.getElementById('car-update-km-modal-close');
+    if(carUpdateKmModal && carUpdateKmModalClose) {
+        carUpdateKmModalClose.onclick = () => carUpdateKmModal.style.display = 'none';
+    }
+
+
+    async function renderReminders(employeeId) {
+        const remindersRef = database.ref(`lembretes/${employeeId}`);
+        const remindersContainer = document.getElementById('reminders-container');
+        
+        remindersRef.on('value', snapshot => {
+            remindersContainer.innerHTML = '';
+            const reminders = snapshot.val();
+            if (!reminders) {
+                remindersContainer.style.display = 'none';
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const activeReminders = Object.entries(reminders).filter(([,r]) => {
+                if (!r.expiresAt) return true; // Never expires if date is not set
+                const [year, month, day] = r.expiresAt.split('-');
+                const expiresDate = new Date(year, month - 1, day);
+                return expiresDate >= today;
+            });
+
+            if (activeReminders.length === 0) {
+                 remindersContainer.style.display = 'none';
+                 return;
+            }
+
+            remindersContainer.style.display = 'block';
+            remindersContainer.innerHTML = `<h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="bell"></i> Lembretes</h2>`;
+
+            const priorityOrder = { 'alta': 1, 'media': 2, 'baixa': 3 };
+            activeReminders.sort(([, a], [, b]) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+            activeReminders.forEach(([key, reminder]) => {
+                const card = document.createElement('div');
+                card.className = `reminder-card priority-${reminder.priority}`;
+                card.innerHTML = `<p>${reminder.message}</p>`;
+                remindersContainer.appendChild(card);
+            });
+            lucide.createIcons();
+        });
+    }
 
     async function renderEmployeeDashboard(employeeId) {
         const employee = funcionariosData[employeeId];
         const container = document.getElementById('employee-cards-container');
         document.getElementById('employee-dashboard-title').textContent = `Bem-vindo(a), ${employee.nome}`;
+        
+        await renderReminders(employeeId);
+
         container.innerHTML = '<p>A carregar as suas informações...</p>';
         
         const getDueDateStatus = (proximoVencimentoStr) => {
@@ -464,10 +563,9 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
         }
         
+        container.innerHTML = finalHtml;
         if (!hasContent) {
             container.innerHTML = '<p>Você não tem permissão para visualizar nenhuma seção ou não há itens alocados para você no momento.</p>';
-        } else {
-            container.innerHTML = finalHtml;
         }
 
         lucide.createIcons();
@@ -725,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const row = dataTableBody.insertRow();
                 row.className = getDueDateStatus(proximoVencimentoStr);
                 const formatarFrequencia = (f) => ({ unico: 'Sem Reagendamento', diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal' }[f] || f || 'N/A');
-                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td><button class="btn-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button></td>`;
+                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td class="table-actions"><button class="btn-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button></td>`;
             });
             lucide.createIcons();
         };
@@ -878,8 +976,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${item.imageUrl ? `<button class="btn-status btn-view-image" data-url="${item.imageUrl}"><i data-lucide="image"></i></button>` : '<span>-</span>'}
                     </td>
                     <td data-label="Ações">
-                        <button class="btn-status btn-edit-stock-item" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                        <button class="btn-status btn-move-stock-item" data-id="${id}" title="Movimentar"><i data-lucide="arrow-right-left"></i></button>
+                         <div class="table-actions">
+                            <button class="btn-status btn-edit-stock-item" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                            <button class="btn-status btn-move-stock-item" data-id="${id}" title="Movimentar"><i data-lucide="arrow-right-left"></i></button>
+                        </div>
                     </td>
                 `;
             });
@@ -930,11 +1030,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const carItemModal = container.querySelector('#car-item-modal');
-        const updateKmModal = container.querySelector('#car-update-km-modal');
+        const updateKmModal = document.getElementById('car-update-km-modal');
         const maintenanceModal = container.querySelector('#car-maintenance-modal');
         
         const carItemForm = container.querySelector('#car-item-form');
-        const updateKmForm = container.querySelector('#car-update-km-form');
+        const updateKmForm = document.getElementById('car-update-km-form');
         const maintenanceForm = container.querySelector('#car-maintenance-form');
 
         const carCardContainer = container.querySelector('#car-card-container');
@@ -987,7 +1087,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         addTrackedListener(container.querySelector('#btn-add-car'), 'click', () => openCarModal(carItemModal));
         addTrackedListener(container.querySelector('#car-item-modal-close'), 'click', closeCarModals);
-        addTrackedListener(container.querySelector('#car-update-km-modal-close'), 'click', closeCarModals);
         addTrackedListener(container.querySelector('#car-maintenance-modal-close'), 'click', closeCarModals);
 
         addTrackedListener(carItemForm, 'submit', (e) => {
@@ -1275,10 +1374,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Ações">
-                        <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                        <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
-                        <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
-                        <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
+                        <div class="table-actions">
+                            <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                            <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
+                            <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
+                            <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
+                        </div>
                     </td>`;
             });
             lucide.createIcons();

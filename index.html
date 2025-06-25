@@ -99,7 +99,10 @@
                 <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
                 <div class="header-text"><h1 id="employee-dashboard-title"></h1><p>As suas informações e tarefas.</p></div>
             </header>
-            <div class="container"><div id="employee-cards-container" class="list-container" style="gap: 1.5rem;"></div></div>
+            <div class="container">
+                <div id="reminders-container"></div>
+                <div id="employee-cards-container" class="list-container" style="gap: 1.5rem;"></div>
+            </div>
         </div>
     </div>
 
@@ -117,6 +120,37 @@
             </form>
         </div>
     </div>
+
+    <div id="reminder-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="reminder-modal-close">&times;</span>
+            <h2 id="reminder-modal-title">Enviar Lembrete</h2>
+            <form id="reminder-form">
+                <input type="hidden" id="reminder-employee-id">
+                <div class="form-group">
+                    <label>Funcionário</label>
+                    <input type="text" id="reminder-employee-name" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="reminder-message">Mensagem</label>
+                    <textarea id="reminder-message" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reminder-priority">Prioridade</label>
+                    <select id="reminder-priority">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label for="reminder-expires-at">Data de Expiração (Opcional)</label>
+                    <input type="date" id="reminder-expires-at">
+                </div>
+                <button type="submit" class="btn-submit"><i data-lucide="send"></i> Enviar Lembrete</button>
+            </form>
+        </div>
+    </div>
     
     <div id="genericModal" class="modal"><div class="modal-content"><span class="close-button" id="genericModalClose">&times;</span><h2 id="modalTitle"></h2><form id="modalForm"><div id="modalFields"></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar</button></form></div></div>
     <div id="statusModal" class="modal"><div class="modal-content"><h2 id="statusModalTitle">Alterar Status</h2><p>Qual o novo status para este item?</p><div class="status-modal-actions"><button id="btnStatusParcial" class="action-button warning"><i data-lucide="package-open"></i> Devolução Parcial</button><button id="btnStatusCompleto" class="action-button danger"><i data-lucide="package-check"></i> Devolução Completa</button><button id="btnStatusCancelar" class="action-button secondary"><i data-lucide="x"></i> Cancelar</button></div></div></div>
@@ -126,6 +160,7 @@
             <img id="modal-image-content" src="" alt="Pré-visualização da Imagem" style="width: 100%; height: auto; max-height: 80vh; object-fit: contain;">
         </div>
     </div>
+    <div id="car-update-km-modal" class="modal"><div class="modal-content"><span class="close-button" id="car-update-km-modal-close">&times;</span><h2 id="car-update-km-modal-title">Atualizar KM</h2><form id="car-update-km-form"><input type="hidden" id="car-update-km-id"><div class="form-grid"><div class="form-group"><label for="car-update-km-input">Nova Quilometragem</label><input type="number" id="car-update-km-input" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Atualizar</button></form></div></div>
 
     <!-- Templates dos Sistemas (ocultos, para serem clonados) -->
     <div id="system-templates" style="display: none;">
@@ -196,7 +231,6 @@
                 </div>
             </div>
             <div id="car-item-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-item-modal-close">&times;</span><h2 id="car-item-modal-title">Adicionar Veículo</h2><form id="car-item-form"><input type="hidden" id="car-item-id"><div class="form-grid"><div class="form-group"><label for="car-item-name">Veículo (Marca/Modelo)</label><input type="text" id="car-item-name" required></div><div class="form-group"><label for="car-item-plate">Placa</label><input type="text" id="car-item-plate" required></div><div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div><div class="form-group"><label for="car-item-cc">C/C</label><input type="text" id="car-item-cc"></div><div class="form-group"><label for="car-item-driver">Condutor (Funcionário)</label><select id="car-item-driver"></select></div><div class="form-group"><label for="car-item-license">Licenciamento</label><input type="date" id="car-item-license"></div><div class="form-group"><label for="car-item-renavan">Renavan</label><input type="text" id="car-item-renavan"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button></form></div></div>
-            <div id="car-update-km-modal" class="modal"><div class="modal-content"><span class="close-button" id="car-update-km-modal-close">&times;</span><h2 id="car-update-km-modal-title">Atualizar KM</h2><form id="car-update-km-form"><input type="hidden" id="car-update-km-id"><div class="form-grid"><div class="form-group"><label for="car-update-km-input">Nova Quilometragem</label><input type="number" id="car-update-km-input" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Atualizar</button></form></div></div>
             <div id="car-maintenance-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-maintenance-modal-close">&times;</span><h2 id="car-maintenance-modal-title">Registrar Manutenção</h2><form id="car-maintenance-form"><input type="hidden" id="car-maintenance-id"><div class="form-group full-width"><label for="car-maintenance-type">Tipo de Serviço Realizado</label><input type="text" id="car-maintenance-type" required placeholder="Ex: Troca de óleo e filtro, Revisão dos freios..."></div><div class="form-grid"><div class="form-group"><label for="car-maintenance-km">KM do Serviço</label><input type="number" id="car-maintenance-km" required></div><div class="form-group"></div><div class="form-group"><label for="car-next-oil-km">Próx. Troca Óleo (KM)</label><input type="number" id="car-next-oil-km"></div><div class="form-group"><label for="car-next-oil-date">Data Próx. Troca Óleo</label><input type="date" id="car-next-oil-date"></div><div class="form-group"><label for="car-next-maintenance-km">Próx. Manutenção (KM)</label><input type="number" id="car-next-maintenance-km"></div><div class="form-group"><label for="car-next-maintenance-date">Data Próx. Manutenção</label><input type="date" id="car-next-maintenance-date"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Registrar</button></form></div></div>
         </div>
         <div data-template="tool">
