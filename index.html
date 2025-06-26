@@ -221,6 +221,68 @@
                     </div>
                 </div>
             </div>
+            <!-- Modal de Edição de Lançamento -->
+            <div id="edit-rental-modal" class="modal">
+                <div class="modal-content large">
+                    <span class="close-button" id="edit-rental-modal-close">&times;</span>
+                    <h2>Editar Lançamento</h2>
+                    <form id="edit-rental-form">
+                        <input type="hidden" id="edit-rental-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit-selectCliente">Cliente/Obra</label>
+                                <select id="edit-selectCliente" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputEndereco">Endereço</label>
+                                <input type="text" id="edit-inputEndereco" disabled placeholder="Preenchido automaticamente">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputCidade">Cidade</label>
+                                <input type="text" id="edit-inputCidade" disabled placeholder="Preenchido automaticamente">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFornecedor">Fornecedor</label>
+                                <select id="edit-selectFornecedor" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectEquipamento">Equipamento</label>
+                                <select id="edit-selectEquipamento" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFuncionario">Funcionário</label>
+                                <select id="edit-selectFuncionario" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputCtr">Nº CTR</label>
+                                <input type="number" id="edit-inputCtr" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputValor">Valor da Cobrança (R$)</label>
+                                <input type="number" step="0.01" id="edit-inputValor" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputDataInicio">Data Vencimento</label>
+                                <input type="date" id="edit-inputDataInicio" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFrequencia">Frequencia de reagendamento</label>
+                                <select id="edit-selectFrequencia">
+                                    <option value="unico">Sem Reagendamento</option>
+                                    <option value="diario">Diário</option>
+                                    <option value="semanal">Semanal</option>
+                                    <option value="mensal">Mensal</option>
+                                </select>
+                            </div>
+                            <div class="form-group form-group-obs">
+                                <label for="edit-inputObservacao">Observação</label>
+                                <textarea id="edit-inputObservacao" rows="1"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
         </div>
         <div data-template="stock">
            <div id="stock-app-container">

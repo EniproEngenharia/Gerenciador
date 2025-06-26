@@ -707,20 +707,28 @@ document.addEventListener('DOMContentLoaded', function () {
         const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
         const container = adminSystemViewContainer;
         
+        // Modais
         const genericModal = document.getElementById('genericModal');
         const statusModal = document.getElementById('statusModal');
+        const editRentalModal = container.querySelector('#edit-rental-modal');
+
+        // Formulários e Campos
         const modalTitle = document.getElementById('modalTitle');
         const modalFields = document.getElementById('modalFields');
         const modalForm = document.getElementById('modalForm');
+        const mainForm = container.querySelector('#main-form');
+        const editRentalForm = container.querySelector('#edit-rental-form');
 
+        // Seletores do formulário principal
         const selectCliente = container.querySelector('#selectCliente');
         const inputEndereco = container.querySelector('#inputEndereco');
         const inputCidade = container.querySelector('#inputCidade');
         const selectFornecedor = container.querySelector('#selectFornecedor');
         const selectEquipamento = container.querySelector('#selectEquipamento');
         const selectFuncionario = container.querySelector('#selectFuncionario');
+        
+        // Tabela e Filtros
         const dataTableBody = container.querySelector('#dataTableBody');
-        const mainForm = container.querySelector('#main-form');
         const filterCliente = container.querySelector('#filterCliente');
         const filterEquipamento = container.querySelector('#filterEquipamento');
         const filterFornecedor = container.querySelector('#filterFornecedor');
@@ -735,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentStatusUpdateId = null;
         let lancamentosAtuais = {};
         
-        const openModal = (type) => {
+        const openGenericModal = (type) => {
             currentModalType = type;
             modalFields.innerHTML = '';
             switch (type) {
@@ -760,18 +768,21 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         const closeModal = () => {
-            genericModal.style.display = 'none';
-            statusModal.style.display = 'none';
+            if(genericModal) genericModal.style.display = 'none';
+            if(statusModal) statusModal.style.display = 'none';
+            if(editRentalModal) editRentalModal.style.display = 'none';
             if (modalForm) modalForm.reset();
+            if (editRentalForm) editRentalForm.reset();
         };
         
         addTrackedListener(document.getElementById('genericModalClose'), 'click', closeModal);
         addTrackedListener(document.getElementById('statusModal').querySelector('#btnStatusCancelar'), 'click', closeModal);
+        addTrackedListener(container.querySelector('#edit-rental-modal-close'), 'click', closeModal);
 
-        container.querySelectorAll('#btnNovaObra, #btnFastAddCliente').forEach(btn => addTrackedListener(btn, 'click', () => openModal('clientes')));
-        container.querySelectorAll('#btnNovoFornecedor, #btnFastAddFornecedor').forEach(btn => addTrackedListener(btn, 'click', () => openModal('fornecedores')));
-        container.querySelectorAll('#btnNovoEquipamento, #btnFastAddEquipamento').forEach(btn => addTrackedListener(btn, 'click', () => openModal('equipamentos')));
-        container.querySelectorAll('#btnNovoFuncionario, #btnFastAddFuncionario').forEach(btn => addTrackedListener(btn, 'click', () => openModal('funcionarios')));
+        container.querySelectorAll('#btnNovaObra, #btnFastAddCliente').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('clientes')));
+        container.querySelectorAll('#btnNovoFornecedor, #btnFastAddFornecedor').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('fornecedores')));
+        container.querySelectorAll('#btnNovoEquipamento, #btnFastAddEquipamento').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('equipamentos')));
+        container.querySelectorAll('#btnNovoFuncionario, #btnFastAddFuncionario').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('funcionarios')));
 
         addTrackedListener(modalForm, 'submit', (e) => {
             e.preventDefault();
@@ -785,29 +796,56 @@ document.addEventListener('DOMContentLoaded', function () {
             database.ref(currentModalType).push(data).then(() => closeModal()).catch(error => console.error("Erro ao salvar: ", error));
         });
 
-        const loadSelectOptions = (refName, selectElement, placeholder) => {
-            const ref = database.ref(refName);
-            trackFirebaseRef(ref);
-            ref.on('value', (snapshot) => {
-                const data = snapshot.val() || {};
-                if(refName === 'clientes') { clientesData = data; }
-                if (!selectElement) return;
-                const selectedValue = selectElement.value;
-                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
-                for (const key in data) { selectElement.innerHTML += `<option value="${key}">${data[key].nome}</option>`; }
-                selectElement.value = selectedValue;
+        const populateSelect = (selectElement, data, placeholder) => {
+            if (!selectElement) return;
+            const selectedValue = selectElement.value;
+            selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+            for (const key in data) { selectElement.innerHTML += `<option value="${key}">${data[key].nome}</option>`; }
+            selectElement.value = selectedValue;
+        }
+
+        const loadAndPopulateAllSelects = () => {
+            const refsToLoad = {
+                clientes: database.ref('clientes'),
+                fornecedores: database.ref('fornecedores'),
+                equipamentos: database.ref('equipamentos'),
+                funcionarios: database.ref('funcionarios')
+            };
+
+            const promises = Object.entries(refsToLoad).map(([key, ref]) => ref.once('value').then(snapshot => ({ key, data: snapshot.val() || {} })));
+
+            Promise.all(promises).then(results => {
+                const allData = results.reduce((acc, {key, data}) => ({...acc, [key]: data }), {});
+                clientesData = allData.clientes;
+
+                // Formulário principal
+                populateSelect(selectCliente, allData.clientes, 'Selecione uma obra');
+                populateSelect(selectFornecedor, allData.fornecedores, 'Selecione um fornecedor');
+                populateSelect(selectEquipamento, allData.equipamentos, 'Selecione um equipamento');
+                populateSelect(selectFuncionario, allData.funcionarios, 'Selecione um funcionário');
+                
+                // Formulário de edição
+                populateSelect(container.querySelector('#edit-selectCliente'), allData.clientes, 'Selecione uma obra');
+                populateSelect(container.querySelector('#edit-selectFornecedor'), allData.fornecedores, 'Selecione um fornecedor');
+                populateSelect(container.querySelector('#edit-selectEquipamento'), allData.equipamentos, 'Selecione um equipamento');
+                populateSelect(container.querySelector('#edit-selectFuncionario'), allData.funcionarios, 'Selecione um funcionário');
             });
         };
-
-        loadSelectOptions('clientes', selectCliente, 'Selecione uma obra');
-        loadSelectOptions('fornecedores', selectFornecedor, 'Selecione um fornecedor');
-        loadSelectOptions('equipamentos', selectEquipamento, 'Selecione um equipamento');
-        loadSelectOptions('funcionarios', selectFuncionario, 'Selecione um funcionário');
+        
+        loadAndPopulateAllSelects();
 
         addTrackedListener(selectCliente, 'change', () => {
             const cliente = clientesData[selectCliente.value];
             if (inputEndereco) inputEndereco.value = cliente ? cliente.endereco : '';
             if (inputCidade) inputCidade.value = cliente ? cliente.cidade : '';
+        });
+        
+        addTrackedListener(container.querySelector('#edit-selectCliente'), 'change', (e) => {
+             const cliente = clientesData[e.target.value];
+             const editEndereco = container.querySelector('#edit-inputEndereco');
+             const editCidade = container.querySelector('#edit-inputCidade');
+             if (editEndereco) editEndereco.value = cliente ? cliente.endereco : '';
+             if (editCidade) editCidade.value = cliente ? cliente.cidade : '';
         });
 
         addTrackedListener(mainForm, 'submit', (e) => {
@@ -823,6 +861,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 reagendamentoAutomatico: container.querySelector('#selectFrequencia').value !== 'unico'
             };
             database.ref('lancamentos').push(data).then(() => { mainForm.reset(); inputEndereco.value = ''; inputCidade.value = ''; }).catch(error => console.error("Erro: ", error));
+        });
+
+        addTrackedListener(editRentalForm, 'submit', (e) => {
+            e.preventDefault();
+            const id = editRentalForm.querySelector('#edit-rental-id').value;
+            if (!id) return;
+
+            const editSelectCliente = container.querySelector('#edit-selectCliente');
+            const editSelectFornecedor = container.querySelector('#edit-selectFornecedor');
+            const editSelectEquipamento = container.querySelector('#edit-selectEquipamento');
+            const editSelectFuncionario = container.querySelector('#edit-selectFuncionario');
+            const editSelectFrequencia = container.querySelector('#edit-selectFrequencia');
+
+            const data = {
+                clienteId: editSelectCliente.value, clienteNome: editSelectCliente.options[editSelectCliente.selectedIndex].text,
+                fornecedorId: editSelectFornecedor.value, fornecedorNome: editSelectFornecedor.options[editSelectFornecedor.selectedIndex].text,
+                equipamentoId: editSelectEquipamento.value, equipamentoNome: editSelectEquipamento.options[editSelectEquipamento.selectedIndex].text,
+                funcionarioId: editSelectFuncionario.value, funcionarioNome: editSelectFuncionario.options[editSelectFuncionario.selectedIndex].text,
+                ctr: container.querySelector('#edit-inputCtr').value, 
+                valor: container.querySelector('#edit-inputValor').value,
+                observacao: container.querySelector('#edit-inputObservacao').value,
+                dataInicio: container.querySelector('#edit-inputDataInicio').value, 
+                frequencia: editSelectFrequencia.value,
+                reagendamentoAutomatico: editSelectFrequencia.value !== 'unico'
+            };
+
+            database.ref('lancamentos/' + id).update(data).then(() => closeModal()).catch(err => console.error("Erro ao atualizar:", err));
         });
 
         const calcularProximoVencimento = (dataInicioStr, frequencia, reagendamentoAutomatico) => {
@@ -878,7 +943,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 const row = dataTableBody.insertRow();
                 row.className = getDueDateStatus(proximoVencimentoStr);
                 const formatarFrequencia = (f) => ({ unico: 'Sem Reagendamento', diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal' }[f] || f || 'N/A');
-                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td><button class="btn-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button></td>`;
+                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td>
+                <td>
+                    <button class="btn-status btn-edit-rental" data-id="${key}" title="Editar Lançamento"><i data-lucide="file-pen-line"></i></button>
+                    <button class="btn-status btn-change-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button>
+                </td>`;
             });
             lucide.createIcons();
         };
@@ -893,8 +962,38 @@ document.addEventListener('DOMContentLoaded', function () {
         [filterCliente, filterEquipamento, filterFornecedor, filterFuncionario, filterStatus].forEach(i => addTrackedListener(i, 'input', applyFiltersAndRender));
 
         addTrackedListener(dataTableBody, 'click', (e) => {
-            const button = e.target.closest('.btn-status');
-            if (button) { currentStatusUpdateId = button.dataset.id; statusModal.style.display = 'block'; }
+            const statusButton = e.target.closest('.btn-change-status');
+            const editButton = e.target.closest('.btn-edit-rental');
+            if (statusButton) { 
+                currentStatusUpdateId = statusButton.dataset.id;
+                statusModal.style.display = 'block'; 
+            }
+            if (editButton) {
+                const rentalId = editButton.dataset.id;
+                const item = lancamentosAtuais[rentalId];
+                if(item) {
+                    // Populate and show the edit modal
+                    container.querySelector('#edit-rental-id').value = rentalId;
+                    container.querySelector('#edit-selectCliente').value = item.clienteId;
+                    // Trigger change to update address/city
+                    container.querySelector('#edit-selectCliente').dispatchEvent(new Event('change'));
+                    setTimeout(() => { // ensure address/city are populated after change event
+                        container.querySelector('#edit-inputEndereco').value = clientesData[item.clienteId]?.endereco || '';
+                        container.querySelector('#edit-inputCidade').value = clientesData[item.clienteId]?.cidade || '';
+                    }, 100);
+
+                    container.querySelector('#edit-selectFornecedor').value = item.fornecedorId;
+                    container.querySelector('#edit-selectEquipamento').value = item.equipamentoId;
+                    container.querySelector('#edit-selectFuncionario').value = item.funcionarioId;
+                    container.querySelector('#edit-inputCtr').value = item.ctr;
+                    container.querySelector('#edit-inputValor').value = item.valor;
+                    container.querySelector('#edit-inputDataInicio').value = item.dataInicio;
+                    container.querySelector('#edit-selectFrequencia').value = item.frequencia;
+                    container.querySelector('#edit-inputObservacao').value = item.observacao;
+                    
+                    editRentalModal.style.display = 'block';
+                }
+            }
         });
 
         addTrackedListener(document.getElementById('btnStatusParcial'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Parcial' }).then(closeModal); } });
