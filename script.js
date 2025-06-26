@@ -78,6 +78,13 @@ document.addEventListener('DOMContentLoaded', function () {
             adminMainContainer.style.display = 'block';
             adminSystemViewContainer.style.display = 'none';
             adminSystemViewContainer.innerHTML = '';
+             // Re-attach event listeners for system buttons on the main admin dashboard
+            document.querySelectorAll('#admin-main-container .system-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const system = button.dataset.system;
+                    showAdminSubView('system', system);
+                });
+            });
         } else if (subViewName === 'system' && systemKey) {
             const templateDiv = document.querySelector(`#system-templates [data-template="${systemKey}"]`);
             if (templateDiv) {
@@ -162,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
         renderEmployeeManagementTable();
 
         // Adiciona os event listeners para os botões de sistema
-        const systemButtons = document.querySelectorAll('.system-button');
+        const systemButtons = document.querySelectorAll('#admin-main-container .system-button');
         systemButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const systemKey = button.dataset.system;
@@ -771,7 +778,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if(accessStockBtn) {
             accessStockBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                showTopLevelView('admin-login-view'); // Go to admin login first
+                showTopLevelView('admin-app-wrapper');
+                showAdminSubView('system', 'stock');
             });
         }
         
@@ -1649,7 +1657,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.innerHTML = `
                     <td data-label="Ferramenta">${tool.nome || 'N/A'}</td>
                     <td data-label="Código">${tool.codigo || 'N/A'}</td>
-                    <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
+                    <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span class="status-text">${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Ações">
                         <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar" ${isDiscarded ? 'disabled' : ''}><i data-lucide="edit"></i></button>
