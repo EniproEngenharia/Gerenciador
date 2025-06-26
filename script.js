@@ -160,6 +160,15 @@ document.addEventListener('DOMContentLoaded', function () {
     function initializeAdminApp() {
         showAdminSubView('main');
         renderEmployeeManagementTable();
+
+        // Adiciona os event listeners para os botões de sistema
+        const systemButtons = document.querySelectorAll('.system-button');
+        systemButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const systemKey = button.dataset.system;
+                showAdminSubView('system', systemKey);
+            });
+        });
     }
     
     function populateEmployeeLoginDropdown() {
@@ -417,11 +426,21 @@ document.addEventListener('DOMContentLoaded', function () {
         carUpdateKmModalClose.onclick = () => carUpdateKmModal.style.display = 'none';
     }
 
+    async function renderEmployeeDashboard(employeeId) {
+        const employee = funcionariosData[employeeId];
+        document.getElementById('employee-dashboard-title').textContent = `Bem-vindo(a), ${employee.nome}`;
+        
+        // Render all sections
+        renderReminders(employeeId);
+        renderInteractiveCalendar(employeeId);
+        renderEmployeeCards(employeeId);
+    }
 
     async function renderReminders(employeeId) {
         const remindersRef = database.ref(`lembretes/${employeeId}`);
         const remindersContainer = document.getElementById('reminders-container');
-        
+        if (!remindersContainer) return;
+
         remindersRef.on('value', snapshot => {
             remindersContainer.innerHTML = '';
             const reminders = snapshot.val();
@@ -460,16 +479,169 @@ document.addEventListener('DOMContentLoaded', function () {
             lucide.createIcons();
         });
     }
+    
+    // --- LÓGICA DO CALENDÁRIO ---
+    let current_date = new Date();
+    let allEvents = {};
 
-    async function renderEmployeeDashboard(employeeId) {
+    async function renderInteractiveCalendar(employeeId) {
+        allEvents = {}; // Reset events
+        const permissions = funcionariosData[employeeId]?.permissions || {};
+
+        // 1. Fetch Rentals
+        if (permissions.canViewRentals) {
+            const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
+            const rentalsData = rentalsSnapshot.val() || {};
+            Object.values(rentalsData).forEach(item => {
+                if(item.status !== 'Devolvido') {
+                    const proximoVencimento = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
+                    if (proximoVencimento) {
+                         if (!allEvents[proximoVencimento]) allEvents[proximoVencimento] = [];
+                         allEvents[proximoVencimento].push({
+                             type: 'locacao',
+                             title: `Vencimento: ${item.equipamentoNome}`,
+                             description: `Cliente: ${item.clienteNome} | CTR: ${item.ctr}`
+                         });
+                    }
+                }
+            });
+        }
+
+        // 2. Fetch Reminders
+        const remindersRef = database.ref(`lembretes/${employeeId}`);
+        const remindersSnapshot = await remindersRef.once('value');
+        const reminders = remindersSnapshot.val() || {};
+        const todayForReminder = new Date();
+        todayForReminder.setHours(0, 0, 0, 0);
+
+        Object.values(reminders).forEach(reminder => {
+             const reminderDate = new Date(reminder.createdAt).toISOString().split('T')[0];
+             if (!reminder.expiresAt || new Date(reminder.expiresAt) >= todayForReminder) {
+                if (!allEvents[reminderDate]) allEvents[reminderDate] = [];
+                 allEvents[reminderDate].push({
+                    type: 'lembrete',
+                    title: `Lembrete (${reminder.priority})`,
+                    description: reminder.message
+                });
+             }
+        });
+        
+        drawCalendar(current_date.getFullYear(), current_date.getMonth());
+    }
+
+    function drawCalendar(year, month) {
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYearDisplay = document.getElementById('month-year-display');
+        if (!calendarGrid || !monthYearDisplay) return;
+
+        calendarGrid.innerHTML = '';
+        monthYearDisplay.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Create empty cells for days before the 1st
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            calendarGrid.innerHTML += `<div class="calendar-day other-month"></div>`;
+        }
+
+        // Create cells for each day of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayCell = document.createElement('div');
+            dayCell.className = 'calendar-day';
+            dayCell.textContent = day;
+            dayCell.dataset.date = dateStr;
+
+            const today = new Date();
+            if (day === today.getDate() && year === today.getFullYear() && month === today.getMonth()) {
+                dayCell.classList.add('current-day');
+            }
+            if (allEvents[dateStr]) {
+                dayCell.classList.add('has-event');
+            }
+
+            dayCell.addEventListener('click', () => {
+                document.querySelectorAll('.calendar-day.selected-day').forEach(d => d.classList.remove('selected-day'));
+                dayCell.classList.add('selected-day');
+                showEventsForDay(dateStr);
+            });
+            calendarGrid.appendChild(dayCell);
+        }
+
+        // Select today by default
+         const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+         const todayCell = document.querySelector(`.calendar-day[data-date="${todayStr}"]`);
+         if(todayCell && year === new Date().getFullYear() && month === new Date().getMonth()) {
+            todayCell.click();
+         } else {
+             // If today is not in view, show for the first day with an event or just the first day
+            const firstEventDay = document.querySelector('.calendar-day.has-event');
+            if(firstEventDay) {
+                firstEventDay.click();
+            } else {
+                const firstDayCell = document.querySelector('.calendar-day:not(.other-month)');
+                if (firstDayCell) firstDayCell.click();
+            }
+         }
+    }
+    
+    function showEventsForDay(dateStr) {
+        const eventsList = document.getElementById('events-list');
+        const selectedDateDisplay = document.getElementById('selected-date-display');
+        if(!eventsList || !selectedDateDisplay) return;
+
+        const date = new Date(dateStr + 'T00:00:00');
+        selectedDateDisplay.textContent = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric'});
+
+        const events = allEvents[dateStr] || [];
+        if (events.length > 0) {
+            eventsList.innerHTML = events.map(event => `
+                <div class="event-item event-type-${event.type}">
+                    <strong>${event.title}</strong>
+                    <p>${event.description}</p>
+                </div>
+            `).join('');
+        } else {
+            eventsList.innerHTML = '<p>Nenhum evento para este dia.</p>';
+        }
+    }
+
+    document.getElementById('prev-month-btn')?.addEventListener('click', () => {
+        current_date.setMonth(current_date.getMonth() - 1);
+        drawCalendar(current_date.getFullYear(), current_date.getMonth());
+    });
+
+    document.getElementById('next-month-btn')?.addEventListener('click', () => {
+        current_date.setMonth(current_date.getMonth() + 1);
+        drawCalendar(current_date.getFullYear(), current_date.getMonth());
+    });
+
+    // --- CÁLCULOS AUXILIARES ---
+    function calcularProximoVencimento(dataInicioStr, frequencia, reagendamentoAutomatico) {
+        if (!dataInicioStr || !frequencia || !reagendamentoAutomatico || frequencia === 'unico') return dataInicioStr || null;
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        let proximaData = new Date(dataInicioStr + 'T03:00:00Z');
+        while (proximaData < hoje) {
+            if (frequencia === 'diario') proximaData.setDate(proximaData.getDate() + 1);
+            else if (frequencia === 'semanal') proximaData.setDate(proximaData.getDate() + 7);
+            else if (frequencia === 'mensal') proximaData.setMonth(proximaData.getMonth() + 1);
+            else break;
+        }
+        return proximaData.toISOString().split('T')[0];
+    };
+
+    async function renderEmployeeCards(employeeId) {
         const employee = funcionariosData[employeeId];
         const container = document.getElementById('employee-cards-container');
-        document.getElementById('employee-dashboard-title').textContent = `Bem-vindo(a), ${employee.nome}`;
+        if (!container) return;
         
-        await renderReminders(employeeId);
+        container.innerHTML = ''; // Clear previous cards
+        const permissions = employee.permissions || {};
+        let finalHtml = '';
+        let hasContent = false;
 
-        container.innerHTML = '<p>A carregar as suas informações...</p>';
-        
         const getDueDateStatus = (proximoVencimentoStr) => {
             if (!proximoVencimentoStr) return 'indicator-license-ok';
             const today = new Date();
@@ -482,25 +654,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return 'indicator-license-ok';
         };
 
-        const calcularProximoVencimento = (dataInicioStr, frequencia, reagendamentoAutomatico) => {
-            if (!dataInicioStr || !frequencia || !reagendamentoAutomatico || frequencia === 'unico') return dataInicioStr || null;
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            let proximaData = new Date(dataInicioStr + 'T03:00:00Z');
-            while (proximaData < hoje) {
-                if (frequencia === 'diario') proximaData.setDate(proximaData.getDate() + 1);
-                else if (frequencia === 'semanal') proximaData.setDate(proximaData.getDate() + 7);
-                else if (frequencia === 'mensal') proximaData.setMonth(proximaData.getMonth() + 1);
-                else break;
-            }
-            return proximaData.toISOString().split('T')[0];
-        };
-
-        const permissions = employee.permissions || {};
-        let finalHtml = '';
-        let hasContent = false;
-
-        // 1. Obras
+        // 1. Obras (now uses allEvents data)
         if (permissions.canViewRentals) {
             const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
             const rentalsData = rentalsSnapshot.val() || {};
@@ -508,11 +662,10 @@ document.addEventListener('DOMContentLoaded', function () {
             
             if (activeRentals.length > 0) {
                 hasContent = true;
-                let cardsHtml = '';
-                activeRentals.sort((a,b) => (a.equipamentoNome || '').localeCompare(b.equipamentoNome || '')).forEach(item => {
+                let cardsHtml = activeRentals.sort((a,b) => (a.equipamentoNome || '').localeCompare(b.equipamentoNome || '')).map(item => {
                     const proximoVencimento = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
                     const indicatorClass = getDueDateStatus(proximoVencimento);
-                    cardsHtml += createDetailCard({
+                    return createDetailCard({
                         title: item.equipamentoNome,
                         subtitle: `Cliente: ${item.clienteNome}`,
                         details: {
@@ -522,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         indicatorClass: indicatorClass,
                         observacao: item.observacao
                     });
-                });
+                }).join('');
                 finalHtml += `
                     <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
                         <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Locações</h2>
@@ -539,11 +692,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(userCars.length > 0) {
                 hasContent = true;
-                let cardsHtml = '';
-                userCars.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).forEach(car => {
+                let cardsHtml = userCars.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).map(car => {
                     const indicatorClass = getDueDateStatus(car.licenciamento);
                     const footer = `<button class="btn-status btn-update-km-employee" data-id="${car.id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i> Atualizar KM</button>`;
-                    cardsHtml += createDetailCard({
+                    return createDetailCard({
                         title: car.nome,
                         subtitle: `Placa: ${car.placa}`,
                         details: {
@@ -553,7 +705,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         indicatorClass: indicatorClass,
                         footerHtml: footer
                     });
-                });
+                }).join('');
                  finalHtml += `
                     <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
                         <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="car"></i> Meus Veículos</h2>
@@ -570,9 +722,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(userTools.length > 0) {
                 hasContent = true;
-                let cardsHtml = '';
-                userTools.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).forEach(tool => {
-                    cardsHtml += createDetailCard({
+                let cardsHtml = userTools.sort((a,b) => (a.nome || '').localeCompare(b.nome || '')).map(tool => {
+                    return createDetailCard({
                         title: tool.nome,
                         subtitle: `Código: ${tool.codigo || 'S/C'}`,
                         details: {
@@ -581,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         indicatorClass: 'indicator-tool-inuse'
                     });
-                });
+                }).join('');
                 finalHtml += `
                     <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
                         <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="wrench"></i> Minhas Ferramentas</h2>
@@ -610,59 +761,32 @@ document.addEventListener('DOMContentLoaded', function () {
         
         container.innerHTML = finalHtml;
         if (!hasContent) {
-            container.innerHTML = '<p>Você não tem permissão para visualizar nenhuma seção ou não há itens alocados para você no momento.</p>';
+            container.innerHTML += '<p>Você não tem nenhuma tarefa ou item alocado no momento.</p>';
         }
 
         lucide.createIcons();
         
-        // Adicionar event listener para o botão de acesso ao estoque
+        // Add event listeners again after rendering
         const accessStockBtn = document.getElementById('employee-access-stock-btn');
         if(accessStockBtn) {
             accessStockBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                showTopLevelView('admin-app-wrapper');
-                showAdminSubView('system', 'stock');
-
-                // Reconfigurar o botão de voltar para retornar ao dashboard do funcionário
-                const backBtn = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
-                if (backBtn) {
-                    const newBackBtn = backBtn.cloneNode(true);
-                    backBtn.parentNode.replaceChild(newBackBtn, backBtn);
-
-                    newBackBtn.addEventListener('click', () => {
-                        showTopLevelView('employee-area-wrapper');
-                    });
-                }
+                showTopLevelView('admin-login-view'); // Go to admin login first
             });
         }
         
-        // Adicionar event listener para os botões de KM
         container.querySelectorAll('.btn-update-km-employee').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const carId = e.currentTarget.dataset.id;
-                handleEmployeeKmUpdate(carId);
-            });
+            btn.addEventListener('click', (e) => handleEmployeeKmUpdate(e.currentTarget.dataset.id));
         });
 
-        // Adicionar event listener para os botões de descrição
         container.querySelectorAll('.btn-show-description').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const description = e.currentTarget.dataset.description;
                 const descriptionModal = document.getElementById('description-modal');
-                document.getElementById('description-modal-text').textContent = description;
+                document.getElementById('description-modal-text').textContent = e.currentTarget.dataset.description;
                 descriptionModal.style.display = 'block';
             });
         });
     }
-
-
-    // --- NAVEGAÇÃO DOS SISTEMAS DENTRO DO ADMIN ---
-    document.querySelectorAll('.system-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const systemKey = e.currentTarget.dataset.system;
-            showAdminSubView('system', systemKey);
-        });
-    });
 
     // --- LÓGICA INTEGRADA DOS SISTEMAS ---
     function setupEventListeners() {
@@ -697,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // ######################################################################
-    //  FUNÇÕES DE LÓGICA DE CADA SISTEMA
+    //  FUNÇÕES DE LÓGICA DE CADA SISTEMA (dentro do admin)
     // ######################################################################
 
     // =====================================================================
@@ -889,20 +1013,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             database.ref('lancamentos/' + id).update(data).then(() => closeModal()).catch(err => console.error("Erro ao atualizar:", err));
         });
-
-        const calcularProximoVencimento = (dataInicioStr, frequencia, reagendamentoAutomatico) => {
-            if (!dataInicioStr || !frequencia || !reagendamentoAutomatico || frequencia === 'unico') return dataInicioStr || null;
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            let proximaData = new Date(dataInicioStr + 'T03:00:00Z');
-            while (proximaData < hoje) {
-                if (frequencia === 'diario') proximaData.setDate(proximaData.getDate() + 1);
-                else if (frequencia === 'semanal') proximaData.setDate(proximaData.getDate() + 7);
-                else if (frequencia === 'mensal') proximaData.setMonth(proximaData.getMonth() + 1);
-                else break;
-            }
-            return proximaData.toISOString().split('T')[0];
-        };
 
         const getDueDateStatus = (proximoVencimentoStr) => {
             if (!proximoVencimentoStr) return '';
@@ -1518,18 +1628,35 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'Disponível': statusColorClass = 'status-dot-green'; break;
                     case 'Em Uso': statusColorClass = 'status-dot-yellow'; break;
                     case 'Em Manutenção': statusColorClass = 'status-dot-red'; break;
+                    case 'Descartada': statusColorClass = 'status-dot-red'; break;
                 }
+
+                row.className = ''; // Reset class
                 if(tool.status === 'Em Manutenção') row.className = 'maintenance-due';
-                let location = tool.status === 'Em Uso' ? `${tool.responsavel} @ ${tool.local}` : (tool.status === 'Em Manutenção' ? 'Manutenção' : 'Depósito');
+                if(tool.status === 'Descartada') row.className = 'discarded-row';
+
+                let location = 'Depósito';
+                if (tool.status === 'Em Uso') {
+                    location = `${tool.responsavel} @ ${tool.local}`;
+                } else if (tool.status === 'Em Manutenção') {
+                    location = 'Manutenção';
+                } else if (tool.status === 'Descartada') {
+                    location = 'Descartada';
+                }
+                
+                const isDiscarded = tool.status === 'Descartada';
+
                 row.innerHTML = `
-                    <td data-label="Ferramenta">${tool.nome || 'N/A'}</td><td data-label="Código">${tool.codigo || 'N/A'}</td>
+                    <td data-label="Ferramenta">${tool.nome || 'N/A'}</td>
+                    <td data-label="Código">${tool.codigo || 'N/A'}</td>
                     <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Ações">
-                        <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                        <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar" ${isDiscarded ? 'disabled' : ''}><i data-lucide="edit"></i></button>
                         <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
                         <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
-                        <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
+                        <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção" ${isDiscarded ? 'disabled' : ''}><i data-lucide="wrench"></i></button>
+                        <button class="btn-status btn-discard-tool" data-id="${id}" title="Descartar" ${isDiscarded ? 'disabled' : ''} style="${isDiscarded ? '' : 'color: var(--danger-color);'}"><i data-lucide="trash-2"></i></button>
                     </td>`;
             });
             lucide.createIcons();
@@ -1568,12 +1695,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!button) return;
             const id = button.dataset.id;
             const tool = toolsData[id];
-            if (button.classList.contains('btn-edit-tool')) openModal(toolItemModal, tool);
-            else if (button.classList.contains('btn-assign-tool')) openModal(toolAssignModal, tool);
-            else if (button.classList.contains('btn-maintenance-tool')) openModal(toolMaintenanceModal, tool);
-            else if (button.classList.contains('btn-return-tool')) {
+            if (button.classList.contains('btn-edit-tool')) {
+                openModal(toolItemModal, tool);
+            } else if (button.classList.contains('btn-assign-tool')) {
+                openModal(toolAssignModal, tool);
+            } else if (button.classList.contains('btn-maintenance-tool')) {
+                openModal(toolMaintenanceModal, tool);
+            } else if (button.classList.contains('btn-return-tool')) {
                 const updates = { status: 'Disponível', responsavel: null, local: null, dataRetirada: null };
                 toolRef.child(id).update(updates).then(() => addToolHistory(id, `Devolvida. Responsável anterior: ${tool.responsavel || 'N/A'}.`));
+            } else if (button.classList.contains('btn-discard-tool')) {
+                const updates = { status: 'Descartada', responsavel: null, local: null, dataRetirada: null };
+                toolRef.child(id).update(updates).then(() => {
+                    addToolHistory(id, `Ferramenta marcada como 'Descartada'.`);
+                });
             }
         });
         

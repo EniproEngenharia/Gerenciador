@@ -566,6 +566,143 @@ input:focus, select:focus, textarea:focus {
     height: 1.2em;
 }
 
+/* --- Calendar Styles --- */
+#calendar-view-container {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+#calendar-widget {
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+#calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+#calendar-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+#calendar-header button {
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#calendar-header button:hover {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+.calendar-weekdays, #calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    gap: 0.5rem;
+}
+.calendar-weekdays {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.calendar-day {
+    padding: 0.75rem 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    position: relative;
+    font-weight: 500;
+}
+.calendar-day.other-month {
+    color: var(--secondary-color);
+    opacity: 0.6;
+}
+.calendar-day:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+.dark-mode .calendar-day:hover {
+    color: var(--background-color);
+}
+.calendar-day.current-day {
+    background-color: var(--secondary-color);
+    color: white;
+}
+.calendar-day.selected-day {
+    background-color: var(--primary-color);
+    color: white !important;
+    font-weight: 700;
+}
+.calendar-day.has-event::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--warning-color);
+}
+.calendar-day.selected-day.has-event::after {
+    background-color: white;
+}
+#calendar-events {
+    padding: 1.5rem;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    max-height: 500px;
+    overflow-y: auto;
+}
+#calendar-events h4 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+#events-list .event-item {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+#events-list .event-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+#events-list .event-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+#events-list .event-item p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.event-type-locacao { border-left: 3px solid var(--success-color); padding-left: 1rem; }
+.event-type-lembrete { border-left: 3px solid var(--warning-color); padding-left: 1rem; }
+
+
 /* --- Unchanged Table, Cards and Specific Logic Styles --- */
 .table-wrapper { overflow-x: auto; width: 100%; border: 1px solid var(--border-color); border-radius: var(--border-radius); transition: border-color 0.3s; }
 table { width: 100%; border-collapse: collapse; }
@@ -631,39 +768,139 @@ td[data-label="Status"] div { display: flex; align-items: center; }
 #tool-history-log .history-item:last-child { border-bottom: none; }
 #tool-history-log .history-item span { display: block; font-size: 0.85rem; color: var(--text-secondary); }
 
+tbody tr.discarded-row {
+    background-color: var(--due-urgent-bg) !important;
+    opacity: 0.7;
+}
+tbody tr.discarded-row td {
+    text-decoration: line-through;
+}
+tbody tr.discarded-row:hover {
+    opacity: 1;
+}
+.status-descartada {
+    background-color: var(--danger-color);
+    color: white;
+}
+.dark-mode .status-descartada {
+    background-color: var(--danger-hover);
+    color: var(--text-primary);
+}
+
+
 /* --- Responsividade --- */
 @media (min-width: 769px) {
     .form-grid { grid-template-columns: repeat(3, 1fr); }
     .form-group-obs { grid-column: span 2; }
 }
 
-@media (max-width: 768px) {
-    .container { padding: 1rem; margin: 1.5rem auto; }
-    header, .detail-header { flex-direction: column; text-align: center; gap: 1rem; }
-    .back-to-services-button { top: 20px; left: 20px; transform: none; }
-    header h1, .detail-header h1 { font-size: 2rem; }
-    .header-text, .detail-header .header-text { text-align: center; }
-    .form-grid { grid-template-columns: 1fr; }
-    .table-header { flex-direction: column; align-items: stretch; }
-    .table-filters { grid-template-columns: 1fr; }
-    .vencimento-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
-    .list-item { flex-direction: column; align-items: stretch; gap: 1rem; }
-    .entry-form-container, .data-table-container, .list-container { padding: 1.5rem; }
+@media (max-width: 900px) {
+    #calendar-view-container {
+        grid-template-columns: 1fr;
+    }
+}
 
-    /* Estilos de card para tabelas em telas pequenas */
-    .table-wrapper.card-view { border: none; overflow-x: hidden; }
-    .table-wrapper.card-view table, .table-wrapper.card-view thead, .table-wrapper.card-view tbody, .table-wrapper.card-view th, .table-wrapper.card-view td, .table-wrapper.card-view tr { display: block; }
-    .table-wrapper.card-view thead { display: none; }
-    .table-wrapper.card-view tr { margin-bottom: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); background-color: var(--card-background); padding: 0; position: relative; overflow: hidden; }
-    .table-wrapper.card-view tr::after { content: ''; position: absolute; top: 0; left: 0; width: 5px; height: 100%; background-color: transparent; transition: background-color 0.3s ease; }
-    .table-wrapper.card-view tr.due-urgent::after, .table-wrapper.card-view tr.maintenance-due::after { background-color: var(--danger-color); }
-    .table-wrapper.card-view tr.due-soon::after { background-color: var(--warning-color); }
-    .table-wrapper.card-view tr.due-ok::after { background-color: var(--success-color); }
-    .table-wrapper.card-view tr.low-stock::after { background-color: var(--warning-color); }
-    .table-wrapper.card-view tr:last-child { margin-bottom: 0; }
-    .table-wrapper.card-view td { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem; text-align: right; border-bottom: 1px solid var(--border-color); white-space: normal; }
-    .table-wrapper.card-view td:last-child { border-bottom: none; }
-    .table-wrapper.card-view td::before { content: attr(data-label); font-weight: 600; text-align: left; color: var(--text-primary); margin-right: 1rem; }
-    .table-wrapper.card-view .status { text-align: right; width: auto; }
-    .table-wrapper.card-view .btn-status { justify-self: flex-end; }
+@media (max-width: 768px) {
+    body {
+        text-align: center;
+    }
+    .container { 
+        padding: 1rem; 
+        margin: 1.5rem auto; 
+    }
+    header, .detail-header { 
+        flex-direction: column; 
+        text-align: center; 
+        gap: 1rem; 
+    }
+    .back-to-services-button { 
+        position: static;
+        transform: none;
+        margin-bottom: 1rem;
+    }
+    header h1, .detail-header h1 { 
+        font-size: 1.8rem; 
+    }
+    header p, .detail-header p {
+        font-size: 1rem;
+    }
+    .header-text, .detail-header .header-text { 
+        text-align: center; 
+    }
+    .form-grid { 
+        grid-template-columns: 1fr; 
+    }
+    .table-header { 
+        flex-direction: column; 
+        align-items: center; 
+    }
+    .table-filters { 
+        grid-template-columns: 1fr; 
+    }
+    .vencimento-item { 
+        flex-direction: column; 
+        align-items: center; 
+        gap: 1rem; 
+    }
+    .entry-form-container, .data-table-container, .list-container { 
+        padding: 1.5rem; 
+    }
+
+    .table-wrapper { 
+        border: none; 
+        overflow-x: hidden; 
+    }
+    .table-wrapper table, 
+    .table-wrapper thead, 
+    .table-wrapper tbody, 
+    .table-wrapper th, 
+    .table-wrapper td, 
+    .table-wrapper tr { 
+        display: block; 
+    }
+    .table-wrapper thead { 
+        display: none; 
+    }
+    .table-wrapper tr { 
+        margin-bottom: 1.5rem; 
+        border-radius: var(--border-radius); 
+        box-shadow: var(--shadow); 
+        border: 1px solid var(--border-color); 
+        background-color: var(--card-background); 
+        padding: 1rem;
+    }
+    .table-wrapper tr:last-child { 
+        margin-bottom: 0; 
+    }
+    .table-wrapper td { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 0.75rem 0.25rem; 
+        text-align: right; 
+        border-bottom: 1px solid var(--border-color); 
+        white-space: normal; 
+    }
+    .table-wrapper td:last-child { 
+        border-bottom: none; 
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-top: 1rem;
+    }
+    .table-wrapper td[data-label="Ações"] {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .table-wrapper td::before { 
+        content: attr(data-label); 
+        font-weight: 600; 
+        text-align: left; 
+        color: var(--text-primary); 
+        margin-right: 1rem; 
+    }
+    .table-wrapper .status { 
+        text-align: right; 
+        width: auto; 
+    }
 }
