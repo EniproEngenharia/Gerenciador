@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const allTopLevelViews = document.querySelectorAll('.top-level-view');
     const serviceSelectionView = document.getElementById('service-selection-view');
     
+    const adminLoginView = document.getElementById('admin-login-view');
     const adminAppWrapper = document.getElementById('admin-app-wrapper');
     const adminMainContainer = document.getElementById('admin-main-container');
     const adminSystemViewContainer = document.getElementById('admin-system-view-container');
@@ -92,7 +93,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                  const backToAdminBtn = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
                  if(backToAdminBtn) {
-                     backToAdminBtn.addEventListener('click', () => showAdminSubView('main'));
+                     backToAdminBtn.addEventListener('click', () => {
+                        showTopLevelView('admin-app-wrapper');
+                        showAdminSubView('main');
+                     });
                  }
             } else {
                 console.error(`Template do sistema não encontrado: ${systemKey}`);
@@ -105,14 +109,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const goHome = () => {
         showAdminSubView('main');
         showTopLevelView('service-selection-view');
+        // Reset admin login
+        adminLoginView.style.display = 'none';
+        document.getElementById('admin-login-form').reset();
+        // Reset employee login
         employeeLoginView.style.display = 'block';
         employeeDashboardView.style.display = 'none';
         document.getElementById('employee-login-form').reset();
     };
 
     btnGoToAdmin.addEventListener('click', () => {
-        showTopLevelView('admin-app-wrapper');
-        initializeAdminApp();
+        showTopLevelView('admin-login-view');
+        initializeAdminLogin();
     });
 
     btnGoToEmployeeArea.addEventListener('click', () => {
@@ -121,9 +129,34 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     backToServicesButtons.forEach(button => button.addEventListener('click', goHome));
-    logoutButton.addEventListener('click', goHome);
+    
+    // Explicitly handle the admin dashboard logout
+    adminAppWrapper.querySelector('.back-to-services-button').addEventListener('click', goHome);
+
 
     // --- ÁREA DO ADMIN ---
+    function initializeAdminLogin() {
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminLoginError = document.getElementById('admin-login-error');
+        
+        adminLoginForm.onsubmit = function(e) {
+            e.preventDefault();
+            // IMPORTANT: In a real application, this password should not be hardcoded.
+            // It should be fetched from a secure source or use a proper authentication system.
+            const ADMIN_PASSWORD = "admin";
+            
+            if (adminPasswordInput.value === ADMIN_PASSWORD) {
+                adminLoginError.textContent = '';
+                showTopLevelView('admin-app-wrapper');
+                initializeAdminApp();
+            } else {
+                adminLoginError.textContent = 'Senha incorreta.';
+                adminPasswordInput.focus();
+            }
+        }
+    }
+
     function initializeAdminApp() {
         showAdminSubView('main');
         renderEmployeeManagementTable();
@@ -159,14 +192,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.innerHTML = `
                     <td data-label="Funcionário">${funcionario.nome}</td>
                     <td data-label="Ações">
-                        <div class="table-actions">
-                            <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
-                                <i data-lucide="key-round"></i> <span>Acessos</span>
-                            </button>
-                            <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
-                                <i data-lucide="bell-plus"></i> <span>Lembrete</span>
-                            </button>
-                        </div>
+                        <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
+                            <i data-lucide="key-round"></i>
+                        </button>
+                        <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
+                            <i data-lucide="bell-plus"></i>
+                        </button>
                     </td>
                 `;
             });
@@ -259,6 +290,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('reminder-modal-close').onclick = () => {
         document.getElementById('reminder-modal').style.display = 'none';
     };
+    
+    document.getElementById('description-modal-close').onclick = () => {
+        document.getElementById('description-modal').style.display = 'none';
+    };
 
     document.getElementById('reminder-form').onsubmit = function(e) {
         e.preventDefault();
@@ -310,13 +345,22 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
     
-    function createDetailCard({ title, subtitle, details, indicatorClass = '', footerHtml = '' }) {
-        const detailsHtml = Object.entries(details).map(([key, value]) => `
+    function createDetailCard({ title, subtitle, details, indicatorClass = '', footerHtml = '', observacao = '' }) {
+        let detailsHtml = Object.entries(details).map(([key, value]) => `
             <div class="car-card-item" style="font-size: 0.9rem;">
                 <strong style="color: var(--text-primary);">${key}:</strong> 
                 <span style="color: var(--text-secondary);">${value}</span>
             </div>
         `).join('');
+
+        if (observacao) {
+            detailsHtml += `
+                <div class="car-card-item" style="font-size: 0.9rem; grid-column: span 2; display: flex; align-items: center; gap: 8px;">
+                     <strong style="color: var(--text-primary);">Obs:</strong>
+                     <button class="btn-status btn-show-description" data-description="${observacao}" title="Ver Descrição"><i data-lucide="info"></i></button>
+                </div>
+            `;
+        }
 
         const indicatorHtml = indicatorClass ? `<div class="status-indicators"><div class="indicator-bar ${indicatorClass}" title="Status"></div></div>` : '';
         const footerSection = footerHtml ? `<div class="car-card-footer">${footerHtml}</div>` : '';
@@ -475,12 +519,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             'Nº CTR': item.ctr,
                             'Próximo Venc.': proximoVencimento ? new Date(proximoVencimento + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'
                         },
-                        indicatorClass: indicatorClass
+                        indicatorClass: indicatorClass,
+                        observacao: item.observacao
                     });
                 });
                 finalHtml += `
                     <section class="dashboard-category" style="margin-bottom: 2.5rem; width: 100%;">
-                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Minhas Obras</h2>
+                        <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="building-2"></i> Locações</h2>
                         <div class="car-card-grid">${cardsHtml}</div>
                     </section>`;
             }
@@ -596,6 +641,16 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', (e) => {
                 const carId = e.currentTarget.dataset.id;
                 handleEmployeeKmUpdate(carId);
+            });
+        });
+
+        // Adicionar event listener para os botões de descrição
+        container.querySelectorAll('.btn-show-description').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const description = e.currentTarget.dataset.description;
+                const descriptionModal = document.getElementById('description-modal');
+                document.getElementById('description-modal-text').textContent = description;
+                descriptionModal.style.display = 'block';
             });
         });
     }
@@ -823,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const row = dataTableBody.insertRow();
                 row.className = getDueDateStatus(proximoVencimentoStr);
                 const formatarFrequencia = (f) => ({ unico: 'Sem Reagendamento', diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal' }[f] || f || 'N/A');
-                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td class="table-actions"><button class="btn-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button></td>`;
+                row.innerHTML = `<td>${item.clienteNome || ''}</td><td>${item.equipamentoNome || ''}</td><td>${item.fornecedorNome || ''}</td><td>${item.funcionarioNome || ''}</td><td>${item.ctr || ''}</td><td>R$ ${parseFloat(item.valor || 0).toFixed(2)}</td><td>${proximoVencimentoStr ? new Date(proximoVencimentoStr + 'T03:00:00Z').toLocaleDateString('pt-BR') : 'N/A'}</td><td>${formatarFrequencia(item.frequencia)}</td><td><span class="status status-${(item.status || "").toLowerCase()}">${item.status}</span></td><td><button class="btn-status" data-id="${key}" title="Alterar Status"><i data-lucide="edit"></i></button></td>`;
             });
             lucide.createIcons();
         };
@@ -976,10 +1031,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${item.imageUrl ? `<button class="btn-status btn-view-image" data-url="${item.imageUrl}"><i data-lucide="image"></i></button>` : '<span>-</span>'}
                     </td>
                     <td data-label="Ações">
-                         <div class="table-actions">
-                            <button class="btn-status btn-edit-stock-item" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                            <button class="btn-status btn-move-stock-item" data-id="${id}" title="Movimentar"><i data-lucide="arrow-right-left"></i></button>
-                        </div>
+                        <button class="btn-status btn-edit-stock-item" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                        <button class="btn-status btn-move-stock-item" data-id="${id}" title="Movimentar"><i data-lucide="arrow-right-left"></i></button>
                     </td>
                 `;
             });
@@ -1374,12 +1427,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td data-label="Status"><div><span class="status-dot ${statusColorClass}"></span><span>${tool.status || 'N/A'}</span></div></td>
                     <td data-label="Local/Responsável">${location}</td>
                     <td data-label="Ações">
-                        <div class="table-actions">
-                            <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                            <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
-                            <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
-                            <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
-                        </div>
+                        <button class="btn-status btn-edit-tool" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
+                        <button class="btn-status btn-assign-tool" data-id="${id}" title="Alocar" ${tool.status !== 'Disponível' ? 'disabled' : ''}><i data-lucide="arrow-right-left"></i></button>
+                        <button class="btn-status btn-return-tool" data-id="${id}" title="Devolver" ${tool.status !== 'Em Uso' ? 'disabled' : ''}><i data-lucide="undo-2"></i></button>
+                        <button class="btn-status btn-maintenance-tool" data-id="${id}" title="Manutenção"><i data-lucide="wrench"></i></button>
                     </td>`;
             });
             lucide.createIcons();

@@ -6,7 +6,7 @@
     <title>Gerenciador de Obras - Enipro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="enipro.png" type="image/png">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -33,12 +33,31 @@
     </div>
 
     <!-- ############# ÁREA DO ADMIN ############# -->
+    <div id="admin-login-view" class="top-level-view">
+        <div class="container">
+            <header>
+                <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                <div class="header-text"><h1>Área do Administrador</h1><p>Insira a senha para aceder ao painel.</p></div>
+            </header>
+            <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
+                <form id="admin-login-form">
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label for="admin-password-input">Senha</label><input type="password" id="admin-password-input" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit">Aceder</button>
+                    <p id="admin-login-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="admin-app-wrapper" class="top-level-view">
         <!-- Dashboard Principal do Admin -->
         <div id="admin-main-container">
             <div class="container">
                 <header>
-                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                    <button class="back-to-services-button"><i data-lucide="log-out"></i></button>
                     <img src="enipro.png" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
                     <div class="header-text">
                         <h1>Painel do Administrador</h1>
@@ -149,6 +168,14 @@
                 </div>
                 <button type="submit" class="btn-submit"><i data-lucide="send"></i> Enviar Lembrete</button>
             </form>
+        </div>
+    </div>
+    
+    <div id="description-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="description-modal-close">&times;</span>
+            <h2 id="description-modal-title">Descrição do Item</h2>
+            <p id="description-modal-text" style="margin-top: 1.5rem;"></p>
         </div>
     </div>
     
