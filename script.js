@@ -600,8 +600,8 @@ document.addEventListener('DOMContentLoaded', function () {
             finalHtml += `
                 <section class="dashboard-category" style="width: 100%;">
                     <h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="boxes"></i> Acesso ao Estoque</h2>
-                    <div class="list-item" style="background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); flex-direction: row; justify-content: space-between;">
-                        <p style="margin: 0;">Você tem permissão para ${permissions.canManageStock ? 'gerenciar' : 'visualizar'} o estoque.</p>
+                    <div style="background-color: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <p style="margin: 0; flex-grow: 1;">Você tem permissão para ${permissions.canManageStock ? 'gerenciar' : 'visualizar'} o estoque.</p>
                         ${buttonHtml}
                     </div>
                 </section>
