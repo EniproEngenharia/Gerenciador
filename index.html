@@ -103,6 +103,13 @@
             color: #111827; /* gray-900 */
             font-weight: 600;
         }
+        
+        /* Ocultar a timeline em telas mobile */
+        @media (max-width: 768px) {
+            #scroll-timeline {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -376,18 +383,24 @@
 
     <!-- MODAL DE HISTÓRIA -->
     <div id="history-modal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 hidden">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-transform duration-300 scale-95">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 class="text-xl font-bold text-gray-900">Nossa História</h3>
-                <button id="close-history-modal-btn" class="text-gray-500 hover:text-red-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto">
-                <p class="text-gray-700 leading-relaxed mb-4">Especializada no desenvolvimento de soluções completas para a construção civil, a ENIPRO ENGENHARIA transforma projetos em realidade. Nosso compromisso primordial é com a satisfação de nossos clientes e a excelência de nossa equipe, unindo técnica e inovação para construir o futuro.</p>
-                <p class="text-gray-700 leading-relaxed mb-4">Desde 1998, sob a direção de especialistas com vasta experiência no mercado, construímos uma trajetória de sucesso e credibilidade. Contamos com um time de profissionais altamente qualificados e em constante treinamento, garantindo a segurança, a confiabilidade e a qualidade superior que cada obra exige.</p>
-                <p class="text-gray-700 leading-relaxed mb-4">Com mais de 25 anos de experiência, dominamos todas as etapas do processo construtivo, desde a concepção e especificação do projeto até os ajustes finais. Atendemos com a mesma dedicação e competência empresas de pequeno, médio e grande porte nos setores comercial, industrial e de empreendimentos imobiliários.</p>
-                <p class="text-gray-700 leading-relaxed">Nosso maior orgulho é o portfólio que construímos e, principalmente, a fidelidade de nossos clientes e parceiros, que nos credenciam como uma empresa respeitada e frequentemente recomendada. Isso é resultado de uma equipe engajada, que encontra na ENIPRO um ambiente de respeito, capacitação e motivação para entregar sempre o melhor.</p>
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-transform duration-300 scale-95 relative overflow-hidden">
+            <!-- Ano de fundo gigante -->
+            <span class="absolute top-0 right-0 text-[12rem] md:text-[15rem] font-black text-gray-200 opacity-50 -z-0 select-none pointer-events-none -mt-8 -mr-8 leading-none">1998</span>
+
+            <!-- Conteúdo real do modal -->
+            <div class="relative z-10 flex flex-col flex-1 min-h-0">
+                <div class="flex justify-between items-center p-6 border-b flex-shrink-0">
+                    <h3 class="text-2xl font-bold text-gray-900">Nossa Trajetória</h3>
+                    <button id="close-history-modal-btn" class="text-gray-500 hover:text-red-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1">
+                    <p class="text-gray-700 leading-relaxed mb-4">Especializada no desenvolvimento de soluções completas para a construção civil, a ENIPRO ENGENHARIA transforma projetos em realidade. Nosso compromisso primordial é com a satisfação de nossos clientes e a excelência de nossa equipe, unindo técnica e inovação para construir o futuro.</p>
+                    <p class="text-gray-700 leading-relaxed mb-4">Desde 1998, sob a direção de especialistas com vasta experiência no mercado, construímos uma trajetória de sucesso e credibilidade. Contamos com um time de profissionais altamente qualificados e em constante treinamento, garantindo a segurança, a confiabilidade e a qualidade superior que cada obra exige.</p>
+                    <p class="text-gray-700 leading-relaxed mb-4">Com mais de 25 anos de experiência, dominamos todas as etapas do processo construtivo, desde a concepção e especificação do projeto até os ajustes finais. Atendemos com a mesma dedicação e competência empresas de pequeno, médio e grande porte nos setores comercial, industrial e de empreendimentos imobiliários.</p>
+                    <p class="text-gray-700 leading-relaxed">Nosso maior orgulho é o portfólio que construímos e, principalmente, a fidelidade de nossos clientes e parceiros, que nos credenciam como uma empresa respeitada e frequentemente recomendada. Isso é resultado de uma equipe engajada, que encontra na ENIPRO um ambiente de respeito, capacitação e motivação para entregar sempre o melhor.</p>
+                </div>
             </div>
         </div>
     </div>
