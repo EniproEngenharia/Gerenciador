@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Render all sections
         renderReminders(employeeId);
-        renderInteractiveCalendar(employeeId);
+        renderWeeklyEvents(employeeId);
         renderEmployeeCards(employeeId);
     }
 
@@ -470,8 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const activeReminders = Object.entries(reminders).filter(([,r]) => {
                 if (!r.expiresAt) return true; // Never expires if date is not set
-                const [year, month, day] = r.expiresAt.split('-');
-                const expiresDate = new Date(year, month - 1, day);
+                const expiresDate = new Date(r.expiresAt + 'T03:00:00Z');
                 return expiresDate >= today;
             });
 
@@ -496,142 +495,92 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
-    // --- LÓGICA DO CALENDÁRIO ---
-    let current_date = new Date();
-    let allEvents = {};
+    async function renderWeeklyEvents(employeeId) {
+        const container = document.getElementById('weekly-events-container');
+        if (!container) return;
 
-    async function renderInteractiveCalendar(employeeId) {
-        allEvents = {}; // Reset events
         const permissions = funcionariosData[employeeId]?.permissions || {};
+        const weeklyEvents = [];
 
-        // 1. Fetch Rentals
+        // 1. Define the week range (Sunday to Saturday)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const firstDayOfWeek = new Date(today);
+        firstDayOfWeek.setDate(today.getDate() - today.getDay());
+        firstDayOfWeek.setHours(0, 0, 0, 0);
+
+        const lastDayOfWeek = new Date(firstDayOfWeek);
+        lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+        lastDayOfWeek.setHours(23, 59, 59, 999);
+
+        // 2. Fetch Rentals
         if (permissions.canViewRentals) {
             const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
             const rentalsData = rentalsSnapshot.val() || {};
             Object.values(rentalsData).forEach(item => {
-                if(item.status !== 'Devolvido') {
-                    const proximoVencimento = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
-                    if (proximoVencimento) {
-                         if (!allEvents[proximoVencimento]) allEvents[proximoVencimento] = [];
-                         allEvents[proximoVencimento].push({
-                             type: 'locacao',
-                             title: `Vencimento: ${item.equipamentoNome}`,
-                             description: `Cliente: ${item.clienteNome} | CTR: ${item.ctr}`
-                         });
+                if (item.status !== 'Devolvido') {
+                    const proximoVencimentoStr = calcularProximoVencimento(item.dataInicio, item.frequencia, item.reagendamentoAutomatico);
+                    if (proximoVencimentoStr) {
+                        const proximoVencimentoDate = new Date(proximoVencimentoStr + 'T03:00:00Z');
+                        if (proximoVencimentoDate >= firstDayOfWeek && proximoVencimentoDate <= lastDayOfWeek) {
+                            weeklyEvents.push({
+                                date: proximoVencimentoDate,
+                                type: 'locacao',
+                                title: `Vencimento: ${item.equipamentoNome}`,
+                                description: `Cliente: ${item.clienteNome} | CTR: ${item.ctr}`
+                            });
+                        }
                     }
                 }
             });
         }
 
-        // 2. Fetch Reminders
+        // 3. Fetch Reminders with due dates
         const remindersRef = database.ref(`lembretes/${employeeId}`);
         const remindersSnapshot = await remindersRef.once('value');
         const reminders = remindersSnapshot.val() || {};
-        const todayForReminder = new Date();
-        todayForReminder.setHours(0, 0, 0, 0);
-
-        Object.values(reminders).forEach(reminder => {
-             const reminderDate = new Date(reminder.createdAt).toISOString().split('T')[0];
-             if (!reminder.expiresAt || new Date(reminder.expiresAt) >= todayForReminder) {
-                if (!allEvents[reminderDate]) allEvents[reminderDate] = [];
-                 allEvents[reminderDate].push({
-                    type: 'lembrete',
-                    title: `Lembrete (${reminder.priority})`,
-                    description: reminder.message
-                });
-             }
-        });
         
-        drawCalendar(current_date.getFullYear(), current_date.getMonth());
-    }
-
-    function drawCalendar(year, month) {
-        const calendarGrid = document.getElementById('calendar-grid');
-        const monthYearDisplay = document.getElementById('month-year-display');
-        if (!calendarGrid || !monthYearDisplay) return;
-
-        calendarGrid.innerHTML = '';
-        monthYearDisplay.textContent = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        // Create empty cells for days before the 1st
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            calendarGrid.innerHTML += `<div class="calendar-day other-month"></div>`;
-        }
-
-        // Create cells for each day of the month
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayCell = document.createElement('div');
-            dayCell.className = 'calendar-day';
-            dayCell.textContent = day;
-            dayCell.dataset.date = dateStr;
-
-            const today = new Date();
-            if (day === today.getDate() && year === today.getFullYear() && month === today.getMonth()) {
-                dayCell.classList.add('current-day');
+        Object.values(reminders).forEach(reminder => {
+            if (reminder.expiresAt) {
+                const expiresDate = new Date(reminder.expiresAt + 'T03:00:00Z');
+                if (expiresDate >= firstDayOfWeek && expiresDate <= lastDayOfWeek) {
+                     weeklyEvents.push({
+                        date: expiresDate,
+                        type: 'lembrete',
+                        title: `Lembrete (${reminder.priority})`,
+                        description: reminder.message
+                    });
+                }
             }
-            if (allEvents[dateStr]) {
-                dayCell.classList.add('has-event');
-            }
+        });
 
-            dayCell.addEventListener('click', () => {
-                document.querySelectorAll('.calendar-day.selected-day').forEach(d => d.classList.remove('selected-day'));
-                dayCell.classList.add('selected-day');
-                showEventsForDay(dateStr);
+        // 4. Sort and Render
+        weeklyEvents.sort((a, b) => a.date - b.date);
+
+        container.innerHTML = ''; // Clear previous content
+        let eventsHtml = `<h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="calendar-days"></i> Eventos da Semana</h2>`;
+        
+        if (weeklyEvents.length > 0) {
+            eventsHtml += '<div class="events-list-container">'; // A container for the list
+            
+            weeklyEvents.forEach(event => {
+                eventsHtml += `
+                    <div class="event-item event-type-${event.type}" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <strong>${event.date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })} - ${event.title}</strong>
+                        <p>${event.description}</p>
+                    </div>
+                `;
             });
-            calendarGrid.appendChild(dayCell);
-        }
 
-        // Select today by default
-         const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-         const todayCell = document.querySelector(`.calendar-day[data-date="${todayStr}"]`);
-         if(todayCell && year === new Date().getFullYear() && month === new Date().getMonth()) {
-            todayCell.click();
-         } else {
-             // If today is not in view, show for the first day with an event or just the first day
-            const firstEventDay = document.querySelector('.calendar-day.has-event');
-            if(firstEventDay) {
-                firstEventDay.click();
-            } else {
-                const firstDayCell = document.querySelector('.calendar-day:not(.other-month)');
-                if (firstDayCell) firstDayCell.click();
-            }
-         }
-    }
-    
-    function showEventsForDay(dateStr) {
-        const eventsList = document.getElementById('events-list');
-        const selectedDateDisplay = document.getElementById('selected-date-display');
-        if(!eventsList || !selectedDateDisplay) return;
-
-        const date = new Date(dateStr + 'T00:00:00');
-        selectedDateDisplay.textContent = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric'});
-
-        const events = allEvents[dateStr] || [];
-        if (events.length > 0) {
-            eventsList.innerHTML = events.map(event => `
-                <div class="event-item event-type-${event.type}">
-                    <strong>${event.title}</strong>
-                    <p>${event.description}</p>
-                </div>
-            `).join('');
+            eventsHtml += '</div>';
         } else {
-            eventsList.innerHTML = '<p>Nenhum evento para este dia.</p>';
+            eventsHtml += `<p>Nenhum evento agendado para esta semana.</p>`;
         }
+        
+        container.innerHTML = eventsHtml;
+        lucide.createIcons();
     }
-
-    document.getElementById('prev-month-btn')?.addEventListener('click', () => {
-        current_date.setMonth(current_date.getMonth() - 1);
-        drawCalendar(current_date.getFullYear(), current_date.getMonth());
-    });
-
-    document.getElementById('next-month-btn')?.addEventListener('click', () => {
-        current_date.setMonth(current_date.getMonth() + 1);
-        drawCalendar(current_date.getFullYear(), current_date.getMonth());
-    });
 
     // --- CÁLCULOS AUXILIARES ---
     function calcularProximoVencimento(dataInicioStr, frequencia, reagendamentoAutomatico) {

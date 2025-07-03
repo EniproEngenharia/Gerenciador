@@ -122,25 +122,9 @@
             <div class="container">
                 <div id="reminders-container"></div>
 
-                <!-- Calendário Interativo -->
-                <div id="calendar-view-container" style="margin-bottom: 2.5rem;">
-                    <div id="calendar-widget">
-                        <div id="calendar-header">
-                            <button id="prev-month-btn" title="Mês Anterior"><i data-lucide="chevron-left"></i></button>
-                            <h3 id="month-year-display"></h3>
-                            <button id="next-month-btn" title="Próximo Mês"><i data-lucide="chevron-right"></i></button>
-                        </div>
-                        <div class="calendar-weekdays">
-                           <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
-                        </div>
-                        <div id="calendar-grid"></div>
-                    </div>
-                    <div id="calendar-events">
-                        <h4>Eventos para <span id="selected-date-display"></span></h4>
-                        <div id="events-list">
-                            <p>Selecione um dia para ver os eventos.</p>
-                        </div>
-                    </div>
+                <!-- Eventos da Semana -->
+                <div id="weekly-events-container" class="list-container" style="margin-bottom: 2.5rem; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); background-color: var(--card-background);">
+                    <!-- O conteúdo será preenchido pelo JavaScript -->
                 </div>
 
                 <!-- Container para os cards -->
