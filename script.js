@@ -176,6 +176,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 showAdminSubView('system', systemKey);
             });
         });
+
+        // Event listener para o botão de Produtos para Aprovação
+        const btnProdutosAprovacao = document.getElementById('btn-produtos-aprovacao');
+        if (btnProdutosAprovacao) {
+            btnProdutosAprovacao.addEventListener('click', () => {
+                // Abre o sistema de produtos em uma nova aba/janela
+                window.open('produtos.html', '_blank');
+            });
+        }
     }
     
     function populateEmployeeLoginDropdown() {

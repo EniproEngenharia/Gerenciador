@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Obras - Enipro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    
+    <button id="theme-toggle" class="theme-toggle" title="Alternar tema">
+        <i data-lucide="moon"></i>
+    </button>
+
+    <!-- PÁGINA DE SELEÇÃO INICIAL -->
+    <div id="service-selection-view" class="top-level-view">
+        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="service-logo" onerror="this.onerror=null;this.src='https://placehold.co/300x100/ffffff/000000?text=Enipro';">
+        <div class="service-buttons">
+            <button id="btn-go-to-admin" class="service-button">
+                <i data-lucide="shield"></i>
+                <span>Área do Admin</span>
+            </button>
+            <button id="btn-go-to-employee-area" class="service-button">
+                <i data-lucide="user"></i>
+                <span>Área do Funcionário</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ############# ÁREA DO ADMIN ############# -->
+    <div id="admin-login-view" class="top-level-view">
+        <div class="container">
+            <header>
+                <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                <div class="header-text"><h1>Área do Administrador</h1><p>Insira a senha para aceder ao painel.</p></div>
+            </header>
+            <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
+                <form id="admin-login-form">
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label for="admin-password-input">Senha</label><input type="password" id="admin-password-input" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit">Aceder</button>
+                    <p id="admin-login-error" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-app-wrapper" class="top-level-view">
+        <!-- Dashboard Principal do Admin -->
+        <div id="admin-main-container">
+            <div class="container">
+                <header>
+                    <button class="back-to-services-button"><i data-lucide="log-out"></i></button>
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text">
+                        <h1>Painel do Administrador</h1>
+                        <p>Gerencie os sistemas e os acessos dos funcionários.</p>
+                    </div>
+                </header>
+
+                <h2 style="text-align: center; margin-bottom: 1.5rem;">Sistemas</h2>
+                <section class="actions-container">
+                    <button data-system="rental" class="action-button system-button"><i data-lucide="building-2"></i> Gerenciador de Obras</button>
+                    <button data-system="stock" class="action-button system-button"><i data-lucide="boxes"></i> Controle de Estoque</button>
+                    <button data-system="car" class="action-button system-button"><i data-lucide="car"></i> Controle de Carros</button>
+                    <button data-system="tool" class="action-button system-button"><i data-lucide="wrench"></i> Controle de Ferramentas</button>
+                    <button id="btn-produtos-aprovacao" class="action-button system-button"><i data-lucide="package-check"></i> Produtos para Aprovação</button>
+                </section>
+
+                <section class="data-table-container">
+                    <h2>Gerenciamento de Funcionários</h2>
+                    <p style="color: var(--text-secondary);">Defina senhas e permissões de visualização para cada funcionário.</p>
+                    <div class="table-wrapper" style="margin-top: 2rem;">
+                        <table>
+                            <thead><tr><th>Funcionário</th><th>Ações</th></tr></thead>
+                            <tbody id="admin-employee-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Container onde as views de cada sistema serão carregadas -->
+        <div id="admin-system-view-container"></div>
+    </div>
+
+    <!-- ############# ÁREA DO FUNCIONÁRIO ############# -->
+    <div id="employee-area-wrapper" class="top-level-view">
+        <div id="employee-login-view">
+             <div class="container">
+                <header>
+                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                    <div class="header-text"><h1>Área do Funcionário</h1><p>Faça login para aceder às suas informações.</p></div>
+                </header>
+                <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
+                    <form id="employee-login-form">
+                        <div class="form-grid" style="grid-template-columns: 1fr;">
+                            <div class="form-group"><label for="employee-select-login">Selecione o seu nome</label><select id="employee-select-login" required><option value="">A carregar funcionários...</option></select></div>
+                            <div class="form-group"><label for="employee-password-input">Senha</label><input type="password" id="employee-password-input" required></div>
+                        </div>
+                        <button type="submit" class="btn-submit">Aceder</button>
+                        <p id="employee-login-error" class="error-message"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="employee-dashboard-view" style="display: none;">
+             <header class="detail-header">
+                <button class="logout-button back-to-services-button" title="Sair"><i data-lucide="log-out"></i></button>
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                <div class="header-text"><h1 id="employee-dashboard-title"></h1><p>As suas informações e tarefas.</p></div>
+            </header>
+            <div class="container">
+                <div id="reminders-container"></div>
+
+                <!-- Calendário Interativo -->
+                <div id="calendar-view-container" style="margin-bottom: 2.5rem;">
+                    <div id="calendar-widget">
+                        <div id="calendar-header">
+                            <button id="prev-month-btn" title="Mês Anterior"><i data-lucide="chevron-left"></i></button>
+                            <h3 id="month-year-display"></h3>
+                            <button id="next-month-btn" title="Próximo Mês"><i data-lucide="chevron-right"></i></button>
+                        </div>
+                        <div class="calendar-weekdays">
+                           <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                        </div>
+                        <div id="calendar-grid"></div>
+                    </div>
+                    <div id="calendar-events">
+                        <h4>Eventos para <span id="selected-date-display"></span></h4>
+                        <div id="events-list">
+                            <p>Selecione um dia para ver os eventos.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Container para os cards -->
+                <div id="employee-cards-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ############# MODAIS GLOBAIS ############# -->
+    <div id="employee-permission-modal" class="modal">
+        <div class="modal-content large">
+            <span class="close-button" id="employee-permission-modal-close">&times;</span>
+            <h2 id="employee-permission-title">Editar Acessos</h2>
+            <form id="employee-permission-form">
+                <input type="hidden" id="permission-employee-id">
+                <div class="form-group"><label for="permission-employee-password">Nova Senha (deixe em branco para não alterar)</label><input type="password" id="permission-employee-password" autocomplete="new-password"></div>
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">Permissões de Visualização</h3>
+                <div id="permissions-checkboxes" class="form-grid" style="grid-template-columns: 1fr 1fr;"></div>
+                <button type="submit" class="btn-submit"><i data-lucide="save"></i> Guardar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="reminder-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="reminder-modal-close">&times;</span>
+            <h2 id="reminder-modal-title">Enviar Lembrete</h2>
+            <form id="reminder-form">
+                <input type="hidden" id="reminder-employee-id">
+                <div class="form-group">
+                    <label>Funcionário</label>
+                    <input type="text" id="reminder-employee-name" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="reminder-message">Mensagem</label>
+                    <textarea id="reminder-message" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reminder-priority">Prioridade</label>
+                    <select id="reminder-priority">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label for="reminder-expires-at">Data de Expiração (Opcional)</label>
+                    <input type="date" id="reminder-expires-at">
+                </div>
+                <button type="submit" class="btn-submit"><i data-lucide="send"></i> Enviar Lembrete</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="description-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="description-modal-close">&times;</span>
+            <h2 id="description-modal-title">Descrição do Item</h2>
+            <p id="description-modal-text" style="margin-top: 1.5rem;"></p>
+        </div>
+    </div>
+    
+    <div id="genericModal" class="modal"><div class="modal-content"><span class="close-button" id="genericModalClose">&times;</span><h2 id="modalTitle"></h2><form id="modalForm"><div id="modalFields"></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar</button></form></div></div>
+    <div id="statusModal" class="modal"><div class="modal-content"><h2 id="statusModalTitle">Alterar Status</h2><p>Qual o novo status para este item?</p><div class="status-modal-actions"><button id="btnStatusParcial" class="action-button warning"><i data-lucide="package-open"></i> Devolução Parcial</button><button id="btnStatusCompleto" class="action-button danger"><i data-lucide="package-check"></i> Devolução Completa</button><button id="btnStatusCancelar" class="action-button secondary"><i data-lucide="x"></i> Cancelar</button></div></div></div>
+    <div id="image-preview-modal" class="modal">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; padding: 1rem;">
+            <span class="close-button" id="image-preview-modal-close">&times;</span>
+            <img id="modal-image-content" src="" alt="Pré-visualização da Imagem" style="width: 100%; height: auto; max-height: 80vh; object-fit: contain;">
+        </div>
+    </div>
+    <div id="car-update-km-modal" class="modal"><div class="modal-content"><span class="close-button" id="car-update-km-modal-close">&times;</span><h2 id="car-update-km-modal-title">Atualizar KM</h2><form id="car-update-km-form"><input type="hidden" id="car-update-km-id"><div class="form-grid"><div class="form-group"><label for="car-update-km-input">Nova Quilometragem</label><input type="number" id="car-update-km-input" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Atualizar</button></form></div></div>
+
+    <!-- Templates dos Sistemas (ocultos, para serem clonados) -->
+    <div id="system-templates" style="display: none;">
+        <div data-template="rental">
+            <div id="rental-app-container">
+                <div id="main-view" class="view">
+                    <div class="container">
+                        <header>
+                            <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                            <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                            <div class="header-text">
+                                <h1>Gerenciador de Obras</h1>
+                                <p>Controle de entradas e saídas de equipamentos em tempo real.</p>
+                            </div>
+                        </header>
+                        <section class="actions-container">
+                            <button id="btnNovaObra" class="action-button"><i data-lucide="plus-circle"></i> Cadastrar Obra</button>
+                            <button id="btnNovoFornecedor" class="action-button"><i data-lucide="truck"></i> Cadastrar Fornecedor</button>
+                            <button id="btnNovoEquipamento" class="action-button"><i data-lucide="wrench"></i> Cadastrar Equipamento</button>
+                            <button id="btnNovoFuncionario" class="action-button"><i data-lucide="user-plus"></i> Cadastrar Funcionário</button>
+                        </section>
+                        <main class="entry-form-container">
+                            <h2>Lançamento de Equipamento</h2>
+                            <form id="main-form"><div class="form-grid"><div class="form-group"><label for="selectCliente">Cliente/Obra</label><div class="select-with-button"><select id="selectCliente" required></select><button type="button" id="btnFastAddCliente" class="btn-add-inside" title="Adicionar Novo Cliente">+</button></div></div><div class="form-group"><label for="inputEndereco">Endereço</label><input type="text" id="inputEndereco" disabled placeholder="Preenchido automaticamente"></div><div class="form-group"><label for="inputCidade">Cidade</label><input type="text" id="inputCidade" disabled placeholder="Preenchido automaticamente"></div><div class="form-group"><label for="selectFornecedor">Fornecedor</label><div class="select-with-button"><select id="selectFornecedor" required></select><button type="button" id="btnFastAddFornecedor" class="btn-add-inside" title="Adicionar Novo Fornecedor">+</button></div></div><div class="form-group"><label for="selectEquipamento">Equipamento</label><div class="select-with-button"><select id="selectEquipamento" required></select><button type="button" id="btnFastAddEquipamento" class="btn-add-inside" title="Adicionar Novo Equipamento">+</button></div></div><div class="form-group"><label for="selectFuncionario">Funcionário</label><div class="select-with-button"><select id="selectFuncionario" required></select><button type="button" id="btnFastAddFuncionario" class="btn-add-inside" title="Adicionar Novo Funcionário">+</button></div></div><div class="form-group"><label for="inputCtr">Nº CTR</label><input type="number" id="inputCtr" required></div><div class="form-group"><label for="inputValor">Valor da Cobrança (R$)</label><input type="number" step="0.01" id="inputValor" required></div><div class="form-group"><label for="inputDataInicio">Data Vencimento</label><input type="date" id="inputDataInicio" required></div><div class="form-group"><label for="selectFrequencia">Frequencia de reagendamento</label><select id="selectFrequencia"><option value="unico">Sem Reagendamento</option><option value="diario">Diário</option><option value="semanal">Semanal</option><option value="mensal">Mensal</option></select></div><div class="form-group form-group-obs"><label for="inputObservacao">Observação</label><textarea id="inputObservacao" rows="1"></textarea></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Lançamento</button></form>
+                        </main>
+                        <section class="data-table-container">
+                            <div class="table-header"><h2>Equipamentos Locados</h2></div>
+                            <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterCliente" placeholder="Filtrar por cliente..."></div><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterEquipamento" placeholder="Filtrar por equipamento..."></div><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterFornecedor" placeholder="Filtrar por fornecedor..."></div><div class="filter-group"><i data-lucide="user" class="filter-icon"></i><input type="text" id="filterFuncionario" placeholder="Filtrar por funcionário..."></div><div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filterStatus"><option value="all">Todos os Status</option><option value="Locado">Locado</option><option value="Parcial">Parcial</option></select></div></div>
+                            <div class="table-wrapper"><table><thead><tr><th>Cliente</th><th>Equipamento</th><th>Fornecedor</th><th>Funcionário</th><th>CTR</th><th>Valor</th><th>Próximo Venc.</th><th>Frequência</th><th>Status</th><th>Ações</th></tr></thead><tbody id="dataTableBody"></tbody></table></div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal de Edição de Lançamento -->
+            <div id="edit-rental-modal" class="modal">
+                <div class="modal-content large">
+                    <span class="close-button" id="edit-rental-modal-close">&times;</span>
+                    <h2>Editar Lançamento</h2>
+                    <form id="edit-rental-form">
+                        <input type="hidden" id="edit-rental-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit-selectCliente">Cliente/Obra</label>
+                                <select id="edit-selectCliente" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputEndereco">Endereço</label>
+                                <input type="text" id="edit-inputEndereco" disabled placeholder="Preenchido automaticamente">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputCidade">Cidade</label>
+                                <input type="text" id="edit-inputCidade" disabled placeholder="Preenchido automaticamente">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFornecedor">Fornecedor</label>
+                                <select id="edit-selectFornecedor" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectEquipamento">Equipamento</label>
+                                <select id="edit-selectEquipamento" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFuncionario">Funcionário</label>
+                                <select id="edit-selectFuncionario" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputCtr">Nº CTR</label>
+                                <input type="number" id="edit-inputCtr" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputValor">Valor da Cobrança (R$)</label>
+                                <input type="number" step="0.01" id="edit-inputValor" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-inputDataInicio">Data Vencimento</label>
+                                <input type="date" id="edit-inputDataInicio" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-selectFrequencia">Frequencia de reagendamento</label>
+                                <select id="edit-selectFrequencia">
+                                    <option value="unico">Sem Reagendamento</option>
+                                    <option value="diario">Diário</option>
+                                    <option value="semanal">Semanal</option>
+                                    <option value="mensal">Mensal</option>
+                                </select>
+                            </div>
+                            <div class="form-group form-group-obs">
+                                <label for="edit-inputObservacao">Observação</label>
+                                <textarea id="edit-inputObservacao" rows="1"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div data-template="stock">
+           <div id="stock-app-container">
+                <div class="container">
+                    <header>
+                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                        <div class="header-text"><h1>Controle de Estoque</h1><p>Gerenciamento de materiais e ferramentas.</p></div>
+                    </header>
+                    <section class="actions-container"><button id="btn-add-stock-item" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Item</button></section>
+                    <section class="data-table-container">
+                        <div class="table-header"><h2>Itens em Estoque</h2></div>
+                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-stock-name" placeholder="Filtrar por nome..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-stock-code" placeholder="Filtrar por código..."></div><div class="filter-group"><i data-lucide="tag" class="filter-icon"></i><input type="text" id="filter-stock-category" placeholder="Filtrar por categoria..."></div></div>
+                        <div class="table-wrapper"><table><thead><tr><th>Item</th><th>Código</th><th>Categoria</th><th>Qtd. Atual</th><th>Unidade</th><th>Img.</th><th>Ações</th></tr></thead><tbody id="stock-table-body"></tbody></table></div>
+                    </section>
+                </div>
+            </div>
+            <div id="stock-item-modal" class="modal"><div class="modal-content"><span class="close-button" id="stock-item-modal-close">&times;</span><h2 id="stock-item-modal-title">Adicionar Novo Item</h2><form id="stock-item-form"><input type="hidden" id="stock-item-id"><div class="form-grid"><div class="form-group"><label for="stock-item-name">Nome do Item</label><input type="text" id="stock-item-name" required></div><div class="form-group"><label for="stock-item-code">Código/SKU</label><input type="text" id="stock-item-code"></div><div class="form-group"><label for="stock-item-category">Categoria</label><input type="text" id="stock-item-category"></div><div class="form-group"><label for="stock-item-quantity">Quantidade Inicial</label><input type="number" id="stock-item-quantity" required></div><div class="form-group"><label for="stock-item-unit">Unidade (Ex: un, kg, m)</label><input type="text" id="stock-item-unit" value="un" required></div><div class="form-group"><label for="stock-item-image">URL da Imagem</label><input type="url" id="stock-item-image" placeholder="https://exemplo.com/imagem.png"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Item</button></form></div></div>
+            <div id="stock-movement-modal" class="modal"><div class="modal-content"><span class="close-button" id="stock-movement-modal-close">&times;</span><h2 id="stock-movement-modal-title">Registrar Movimentação</h2><form id="stock-movement-form"><input type="hidden" id="stock-movement-item-id"><div class="form-grid"><div class="form-group"><label for="movement-type">Tipo de Movimentação</label><select id="movement-type"><option value="saida">Saída</option><option value="entrada">Entrada</option></select></div><div class="form-group"><label for="movement-quantity">Quantidade</label><input type="number" id="movement-quantity" required min="1"></div></div><div class="form-group"><label for="movement-notes">Observação / Destino</label><textarea id="movement-notes" rows="2"></textarea></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar</button></form></div></div>
+        </div>
+        <div data-template="car">
+            <div id="car-app-container">
+                <div class="container">
+                     <header>
+                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                        <div class="header-text"><h1>Controle de Veículos</h1><p>Gerenciamento de frota e manutenção preventiva.</p></div>
+                    </header>
+                    <section class="actions-container"><button id="btn-add-car" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Veículo</button></section>
+                     <section class="data-table-container">
+                        <div class="table-header"><h2>Frota de Veículos</h2></div>
+                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-car-name" placeholder="Filtrar por veículo..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-car-plate" placeholder="Filtrar por placa..."></div></div>
+                        <div id="car-card-container" class="car-card-grid"></div>
+                    </section>
+                </div>
+            </div>
+            <div id="car-item-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-item-modal-close">&times;</span><h2 id="car-item-modal-title">Adicionar Veículo</h2><form id="car-item-form"><input type="hidden" id="car-item-id"><div class="form-grid"><div class="form-group"><label for="car-item-name">Veículo (Marca/Modelo)</label><input type="text" id="car-item-name" required></div><div class="form-group"><label for="car-item-plate">Placa</label><input type="text" id="car-item-plate" required></div><div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div><div class="form-group"><label for="car-item-cc">C/C</label><input type="text" id="car-item-cc"></div><div class="form-group"><label for="car-item-driver">Condutor (Funcionário)</label><select id="car-item-driver"></select></div><div class="form-group"><label for="car-item-license">Licenciamento</label><input type="date" id="car-item-license"></div><div class="form-group"><label for="car-item-renavan">Renavan</label><input type="text" id="car-item-renavan"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button></form></div></div>
+            <div id="car-maintenance-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-maintenance-modal-close">&times;</span><h2 id="car-maintenance-modal-title">Registrar Manutenção</h2><form id="car-maintenance-form"><input type="hidden" id="car-maintenance-id"><div class="form-group full-width"><label for="car-maintenance-type">Tipo de Serviço Realizado</label><input type="text" id="car-maintenance-type" required placeholder="Ex: Troca de óleo e filtro, Revisão dos freios..."></div><div class="form-grid"><div class="form-group"><label for="car-maintenance-km">KM do Serviço</label><input type="number" id="car-maintenance-km" required></div><div class="form-group"></div><div class="form-group"><label for="car-next-oil-km">Próx. Troca Óleo (KM)</label><input type="number" id="car-next-oil-km"></div><div class="form-group"><label for="car-next-oil-date">Data Próx. Troca Óleo</label><input type="date" id="car-next-oil-date"></div><div class="form-group"><label for="car-next-maintenance-km">Próx. Manutenção (KM)</label><input type="number" id="car-next-maintenance-km"></div><div class="form-group"><label for="car-next-maintenance-date">Data Próx. Manutenção</label><input type="date" id="car-next-maintenance-date"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Registrar</button></form></div></div>
+        </div>
+        <div data-template="tool">
+            <div id="tool-app-container">
+                <div class="container">
+                     <header>
+                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
+                        <div class="header-text"><h1>Controle de Ferramentas</h1><p>Gerenciamento de ferramentas elétricas e manuais.</p></div>
+                    </header>
+                    <section class="actions-container"><button id="btn-add-tool" class="action-button"><i data-lucide="plus"></i> Adicionar Nova Ferramenta</button><button id="btn-view-tool-history" class="action-button secondary"><i data-lucide="history"></i> Ver Histórico</button></section>
+                     <section class="data-table-container">
+                        <div class="table-header"><h2>Inventário de Ferramentas</h2></div>
+                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-tool-name" placeholder="Filtrar por nome..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-tool-code" placeholder="Filtrar por código..."></div><div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filter-tool-status"><option value="all">Todos os Status</option><option value="Disponível">Disponível</option><option value="Em Uso">Em Uso</option><option value="Em Manutenção">Em Manutenção</option><option value="Descartada">Descartada</option></select></div></div>
+                        <div class="table-wrapper"><table><thead><tr><th>Ferramenta</th><th>Código</th><th>Status</th><th>Local/Responsável</th><th>Ações</th></tr></thead><tbody id="tool-table-body"></tbody></table></div>
+                    </section>
+                </div>
+            </div>
+            <div id="tool-item-modal" class="modal"><div class="modal-content large"><span class="close-button" id="tool-item-modal-close">&times;</span><h2 id="tool-item-modal-title">Adicionar Ferramenta</h2><form id="tool-item-form"><input type="hidden" id="tool-item-id"><div class="form-grid"><div class="form-group"><label for="tool-item-name">Nome</label><input type="text" id="tool-item-name" required></div><div class="form-group"><label for="tool-item-brand">Marca</label><input type="text" id="tool-item-brand"></div><div class="form-group"><label for="tool-item-model">Modelo</label><input type="text" id="tool-item-model"></div><div class="form-group"><label for="tool-item-code">Código / Nº Série</label><input type="text" id="tool-item-code"></div><div class="form-group"><label for="tool-item-buy-date">Data da Compra</label><input type="date" id="tool-item-buy-date"></div><div class="form-group"><label for="tool-item-value">Valor (R$)</label><input type="number" step="0.01" id="tool-item-value"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Ferramenta</button></form></div></div>
+            <div id="tool-assign-modal" class="modal"><div class="modal-content"><span class="close-button" id="tool-assign-modal-close">&times;</span><h2 id="tool-assign-modal-title">Retirar Ferramenta</h2><form id="tool-assign-form"><input type="hidden" id="tool-assign-id"><div class="form-grid"><div class="form-group"><label for="tool-assign-employee">Funcionário Responsável</label><select id="tool-assign-employee" required></select></div><div class="form-group"><label for="tool-assign-project">Obra de Destino</label><select id="tool-assign-project" required></select></div><div class="form-group"><label for="tool-assign-date">Data de Retirada</label><input type="date" id="tool-assign-date" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar Retirada</button></form></div></div>
+            <div id="tool-maintenance-modal" class="modal"><div class="modal-content"><span class="close-button" id="tool-maintenance-modal-close">&times;</span><h2 id="tool-maintenance-modal-title">Manutenção da Ferramenta</h2><form id="tool-maintenance-form"><input type="hidden" id="tool-maintenance-id"><div class="form-grid" style="grid-template-columns: 1fr;"><div class="form-group"><label for="tool-maintenance-status">Status</label><select id="tool-maintenance-status"><option value="Em Manutenção">Enviar para Manutenção</option><option value="Disponível">Retornou da Manutenção</option></select></div><div class="form-group"><label for="tool-maintenance-next-date">Data da Próxima Manutenção</label><input type="date" id="tool-maintenance-next-date"></div><div class="form-group"><label for="tool-maintenance-notes">Observações</label><textarea id="tool-maintenance-notes" rows="3"></textarea></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Atualizar</button></form></div></div>
+            <div id="tool-history-modal" class="modal"><div class="modal-content large"><span class="close-button" id="tool-history-modal-close">&times;</span><h2>Histórico da Ferramenta</h2><div class="form-group" style="margin-top: 1.5rem;"><label for="select-tool-history">Selecione uma Ferramenta</label><select id="select-tool-history"></select></div><div id="tool-history-log" class="vencimentos-list" style="margin-top: 1.5rem;"></div></div></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
