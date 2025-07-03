@@ -1,360 +1,821 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Obras - Enipro</title>
+    <title>Enipro - Construindo com Qualidade</title>
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" href="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" type="image/png">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Animate.css para Animações -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <!-- Ícones: Lucide.dev -->
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/lucide-react.js"></script>
+
+
+    <style>
+        /* Estilo customizado para usar a fonte Poppins */
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        /* Efeito de sublinhado animado para os links do menu */
+        .nav-link::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 2px;
+            background: #16a34a; /* Verde primário (green-600) */
+            transition: width .3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .hero-section {
+            background-image: url('https://lh3.googleusercontent.com/pw/AP1GczNiMxYRK9nuc8B9fNMR4_gRjdeTNhGFT9Q0CN0jIv1IodyBZLBNEvt08UDmUEZal10Rk7d0MDPuxgb3TuFfGeelEIu6Jpzr4zC4_cz4LzfDqESFF66Ng4pdKep6PqrH5E8nGvJ_5hi0GhIO2rG4LzA=w1536-h758-s-no-gm?authuser=1');
+            background-size: cover;
+            background-position: center;
+        }
+        /* Estilos para os modais */
+        .modal.hidden {
+            display: none;
+        }
+        /* Estilo para a lista de projetos no modal completo */
+        .project-list-item.active {
+            background-color: #d1fae5; /* green-100 */
+            color: #047857; /* green-700 */
+            font-weight: 600;
+        }
+        /* Estilo para o botão de filtro ativo na página principal */
+        #project-filters .filter-btn.active {
+            color: #f97316; /* orange-500 */
+            font-weight: 700;
+            border-bottom: 2px solid #f97316;
+        }
+        /* Estilos para animação de scroll */
+        .animate-on-scroll {
+            opacity: 0;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .animate-on-scroll.animated {
+            opacity: 1;
+        }
+        /* Animação para os cards de projetos */
+        #project-gallery .project-item {
+            transition: transform 0.4s ease, opacity 0.4s ease;
+        }
+        #project-gallery.hiding .project-item {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        /* Estilos para a timeline de scroll */
+        #scroll-timeline {
+            transition: opacity 0.5s ease-in-out;
+        }
+        #scroll-timeline.visible {
+            opacity: 0.6; /* Opacidade reduzida para ser menos proeminente */
+        }
+        #scroll-timeline.visible:hover {
+            opacity: 1; /* Opacidade total ao passar o mouse */
+        }
+        #scroll-timeline.visible .timeline-label {
+            opacity: 1;
+        }
+        .timeline-dot {
+            transition: all 0.3s ease;
+        }
+        .timeline-label {
+            transition: all 0.3s ease-in-out;
+            color: #4b5563; /* gray-600 */
+        }
+        li.active .timeline-dot {
+            background-color: #16a34a; /* green-600 */
+            transform: scale(1.5);
+        }
+        li.active .timeline-label {
+            color: #111827; /* gray-900 */
+            font-weight: 600;
+        }
+    </style>
 </head>
-<body>
-    
-    <button id="theme-toggle" class="theme-toggle" title="Alternar tema">
-        <i data-lucide="moon"></i>
-    </button>
+<body class="bg-gray-50 text-gray-800">
 
-    <!-- PÁGINA DE SELEÇÃO INICIAL -->
-    <div id="service-selection-view" class="top-level-view">
-        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="service-logo" onerror="this.onerror=null;this.src='https://placehold.co/300x100/ffffff/000000?text=Enipro';">
-        <div class="service-buttons">
-            <button id="btn-go-to-admin" class="service-button">
-                <i data-lucide="shield"></i>
-                <span>Área do Admin</span>
+    <!-- CABEÇALHO E NAVEGAÇÃO -->
+    <header id="header" class="bg-white shadow-md fixed top-0 left-0 w-full z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+            <!-- Container para o Logo que o posiciona por cima da barra -->
+            <a href="#" class="absolute top-1 left-4 sm:left-6 z-10 bg-white p-1 rounded-lg shadow-lg">
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Construtora" class="h-16 sm:h-20 w-auto">
+            </a>
+            <!-- Placeholder para manter o espaçamento do menu -->
+            <div class="w-20 sm:w-24">&nbsp;</div>
+
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#inicio" class="nav-link text-gray-600 hover:text-green-600 font-medium">Início</a>
+                <a href="#sobre" class="nav-link text-gray-600 hover:text-green-600 font-medium">Sobre Nós</a>
+                <a href="#empreendimentos" class="nav-link text-gray-600 hover:text-green-600 font-medium">Empreendimentos</a>
+                <a href="#contato" class="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition-colors">Solicite um Orçamento</a>
+            </nav>
+            <button id="mobile-menu-button" class="md:hidden text-gray-800">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
-            <button id="btn-go-to-employee-area" class="service-button">
-                <i data-lucide="user"></i>
-                <span>Área do Funcionário</span>
-            </button>
         </div>
-    </div>
+        <!-- Menu Mobile -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+            <a href="#inicio" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Início</a>
+            <a href="#sobre" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Sobre Nós</a>
+            <a href="#empreendimentos" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Empreendimentos</a>
+            <a href="#contato" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Solicite um Orçamento</a>
+        </div>
+    </header>
 
-    <!-- ############# ÁREA DO ADMIN ############# -->
-    <div id="admin-login-view" class="top-level-view">
-        <div class="container">
-            <header>
-                <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                <div class="header-text"><h1>Área do Administrador</h1><p>Insira a senha para aceder ao painel.</p></div>
-            </header>
-            <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
-                <form id="admin-login-form">
-                    <div class="form-grid" style="grid-template-columns: 1fr;">
-                        <div class="form-group"><label for="admin-password-input">Senha</label><input type="password" id="admin-password-input" required></div>
-                    </div>
-                    <button type="submit" class="btn-submit">Aceder</button>
-                    <p id="admin-login-error" class="error-message"></p>
-                </form>
+    <main>
+        <!-- SEÇÃO HERO -->
+        <section id="inicio" class="hero-section h-[80vh] relative">
+            <div class="absolute inset-0 bg-black opacity-50"></div>
+            <div class="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-6">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-4 animate__animated animate__fadeInDown">Construindo com Qualidade</h1>
+                <p class="text-lg md:text-xl max-w-3xl mb-8 animate__animated animate__fadeInUp animate__delay-1s">Engenharia que constrói valor para o seu futuro.</p>
+                <a href="#empreendimentos" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105 animate__animated animate__pulse animate__delay-2s animate__infinite">Conheça Nossos Projetos</a>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div id="admin-app-wrapper" class="top-level-view">
-        <!-- Dashboard Principal do Admin -->
-        <div id="admin-main-container">
-            <div class="container">
-                <header>
-                    <button class="back-to-services-button"><i data-lucide="log-out"></i></button>
-                    <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                    <div class="header-text">
-                        <h1>Painel do Administrador</h1>
-                        <p>Gerencie os sistemas e os acessos dos funcionários.</p>
+        <!-- SEÇÃO SOBRE NÓS -->
+        <section id="sobre" class="py-16 sm:py-20 bg-white overflow-hidden -mt-20 relative z-10 rounded-t-2xl">
+            <div class="container mx-auto px-4 sm:px-6">
+                <div class="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+                    <div class="animate-on-scroll" data-animation="animate__fadeInLeft">
+                        <img src="https://placehold.co/600x400/e2e8f0/2d3748?text=Nossa+Equipe" alt="Equipe da construtora" class="rounded-lg shadow-2xl w-5/6 mx-auto">
                     </div>
-                </header>
-
-                <h2 style="text-align: center; margin-bottom: 1.5rem;">Sistemas</h2>
-                <section class="actions-container">
-                    <button data-system="rental" class="action-button system-button"><i data-lucide="building-2"></i> Gerenciador de Obras</button>
-                    <button data-system="stock" class="action-button system-button"><i data-lucide="boxes"></i> Controle de Estoque</button>
-                    <button data-system="car" class="action-button system-button"><i data-lucide="car"></i> Controle de Carros</button>
-                    <button data-system="tool" class="action-button system-button"><i data-lucide="wrench"></i> Controle de Ferramentas</button>
-                    <button id="btn-produtos-aprovacao" class="action-button system-button"><i data-lucide="package-check"></i> Produtos para Aprovação</button>
-                </section>
-
-                <section class="data-table-container">
-                    <h2>Gerenciamento de Funcionários</h2>
-                    <p style="color: var(--text-secondary);">Defina senhas e permissões de visualização para cada funcionário.</p>
-                    <div class="table-wrapper" style="margin-top: 2rem;">
-                        <table>
-                            <thead><tr><th>Funcionário</th><th>Ações</th></tr></thead>
-                            <tbody id="admin-employee-table-body"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </div>
-
-        <!-- Container onde as views de cada sistema serão carregadas -->
-        <div id="admin-system-view-container"></div>
-    </div>
-
-    <!-- ############# ÁREA DO FUNCIONÁRIO ############# -->
-    <div id="employee-area-wrapper" class="top-level-view">
-        <div id="employee-login-view">
-             <div class="container">
-                <header>
-                    <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                    <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                    <div class="header-text"><h1>Área do Funcionário</h1><p>Faça login para aceder às suas informações.</p></div>
-                </header>
-                <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
-                    <form id="employee-login-form">
-                        <div class="form-grid" style="grid-template-columns: 1fr;">
-                            <div class="form-group"><label for="employee-select-login">Selecione o seu nome</label><select id="employee-select-login" required><option value="">A carregar funcionários...</option></select></div>
-                            <div class="form-group"><label for="employee-password-input">Senha</label><input type="password" id="employee-password-input" required></div>
+                    <div class="animate-on-scroll" data-animation="animate__fadeInRight">
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Mais de 25 Anos de Excelência em Construção</h2>
+                        <p class="text-gray-700 mb-6 leading-relaxed">
+                           A ENIPRO ENGENHARIA, desde 1998, oferece soluções completas e inovadoras para a construção civil. Atendemos projetos comerciais, industriais e imobiliários com um compromisso de excelência, segurança e confiabilidade em todas as etapas da obra.
+                        </p>
+                        <div class="flex justify-center md:justify-start space-x-6 mb-6">
+                            <div class="text-center">
+                                <p class="text-2xl sm:text-3xl font-bold text-green-600">+50</p>
+                                <p class="text-gray-500 text-sm sm:text-base">Projetos Entregues</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl sm:text-3xl font-bold text-green-600">+1.200</p>
+                                <p class="text-gray-500 text-sm sm:text-base">Clientes Satisfeitos</p>
+                            </div>
                         </div>
-                        <button type="submit" class="btn-submit">Aceder</button>
-                        <p id="employee-login-error" class="error-message"></p>
+                        <button id="open-history-modal-btn" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105 mt-4">Conheça toda nossa história</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO EMPREENDIMENTOS -->
+        <section id="empreendimentos" class="py-16 sm:py-20 bg-gray-50">
+            <div class="container mx-auto px-4 sm:px-6">
+                <div class="text-center mb-12 animate-on-scroll" data-animation="animate__fadeInUp">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Nossos Empreendimentos</h2>
+                    <p class="text-gray-700 mt-2">Conheça os projetos que definem nosso padrão de qualidade.</p>
+                </div>
+                
+                <div id="project-filters" class="flex justify-center space-x-4 md:space-x-8 mb-10 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="200">
+                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="residencial">Residencial</button>
+                    <button class="filter-btn text-gray-500 px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="comercial">Comercial</button>
+                    <button class="filter-btn text-gray-500 px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="industrial">Industrial</button>
+                </div>
+
+                <div id="project-gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Os cards dos projetos serão inseridos aqui pelo JavaScript -->
+                </div>
+                <div class="text-center mt-12 animate-on-scroll" data-animation="animate__fadeInUp">
+                    <button id="open-all-projects-modal-btn" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105">
+                        Ver Todos os Projetos
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demais seções (Diferenciais) -->
+        <section id="diferenciais" class="py-16 sm:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6">
+                <div class="text-center mb-12 animate-on-scroll" data-animation="animate__fadeInUp">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Nossos Diferenciais</h2>
+                    <p class="text-gray-700 mt-2">Pilares que sustentam a qualidade de cada obra.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="text-center p-6 bg-gray-50 rounded-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="0">
+                        <div class="inline-block p-4 bg-green-100 text-green-600 rounded-full mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Qualidade Superior</h3>
+                        <p class="text-gray-700 text-sm">Utilizamos os melhores materiais e técnicas construtivas para garantir durabilidade e acabamento impecável.</p>
+                    </div>
+                    <div class="text-center p-6 bg-gray-50 rounded-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="200">
+                         <div class="inline-block p-4 bg-green-100 text-green-600 rounded-full mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Segurança em Primeiro Lugar</h3>
+                        <p class="text-gray-700 text-sm">Seguimos rigorosamente todas as normas de segurança para proteger nossos colaboradores e futuros moradores.</p>
+                    </div>
+                    <div class="text-center p-6 bg-gray-50 rounded-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="400">
+                         <div class="inline-block p-4 bg-green-100 text-green-600 rounded-full mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Inovação e Tecnologia</h3>
+                        <p class="text-gray-700 text-sm">Buscamos constantemente por soluções inovadoras que agregam valor, conforto e sustentabilidade aos projetos.</p>
+                    </div>
+                    <div class="text-center p-6 bg-gray-50 rounded-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="600">
+                         <div class="inline-block p-4 bg-green-100 text-green-600 rounded-full mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M22 12c0-5.52-4.48-10-10-10"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Compromisso com Prazos</h3>
+                        <p class="text-gray-700 text-sm">Planejamento e gestão eficientes que garantem a entrega dos empreendimentos dentro do prazo combinado.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- SEÇÃO CONTATO -->
+        <section id="contato" class="py-16 sm:py-20 bg-gray-100">
+            <div class="container mx-auto px-4 sm:px-6">
+                 <div class="text-center mb-12 animate-on-scroll" data-animation="animate__fadeInUp">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Entre em Contato</h2>
+                    <p class="text-gray-700 mt-2">Estamos prontos para ouvir você. Envie sua mensagem ou entre em contato pelos canais abaixo.</p>
+                </div>
+                
+                <!-- Informações de Contato Direto -->
+                <div class="max-w-6xl mx-auto mb-12 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="200">
+                    <div class="flex flex-col md:flex-row flex-wrap justify-center items-center gap-8 md:gap-12 text-gray-800">
+                        <!-- Telefones -->
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 flex-shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <div class="ml-4 text-left">
+                                <h4 class="font-semibold text-lg">Telefones</h4>
+                                <p class="text-sm sm:text-base">
+                                    <a href="tel:+551532324836" class="hover:text-orange-500 transition-colors">(15) 3232-4836</a> | 
+                                    <a href="tel:+551532321972" class="hover:text-orange-500 transition-colors">3232-1972</a>
+                                </p>
+                            </div>
+                        </div>
+                        <!-- Email -->
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 flex-shrink-0"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                            <div class="ml-4 text-left">
+                                <h4 class="font-semibold text-lg">Email</h4>
+                                <a href="mailto:contato@enipro.com.br" class="hover:text-orange-500 transition-colors text-sm sm:text-base">contato@enipro.com.br</a>
+                            </div>
+                        </div>
+                        <!-- Localização -->
+                        <div class="flex items-start sm:items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 flex-shrink-0 mt-1 sm:mt-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <div class="ml-4 text-left">
+                                <h4 class="font-semibold text-lg">Localização</h4>
+                                <a href="https://www.google.com/maps/search/?api=1&query=R.+Dr.+Moary+Paula+Ferraz,+60+-+Vila+Lucy,+Sorocaba+-+SP,+18043-110" target="_blank" rel="noopener noreferrer" class="hover:text-orange-500 transition-colors text-sm sm:text-base">
+                                    R. Dr. Moary Paula Ferraz, 60 - Sorocaba, SP
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário de Contato -->
+                <div class="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-4xl mx-auto animate-on-scroll" data-animation="animate__fadeInUp" data-delay="400">
+                    <form action="#" method="POST">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="mb-4">
+                                <label for="name" class="block text-gray-700 font-medium mb-2">Nome</label>
+                                <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Seu nome completo" required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
+                                <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="seu.email@exemplo.com" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                             <label for="subject" class="block text-gray-700 font-medium mb-2">Assunto</label>
+                             <input type="text" id="subject" name="subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ex: Informações sobre o Residencial Vista Alegre">
+                        </div>
+                         <div class="mb-6">
+                            <label for="message" class="block text-gray-700 font-medium mb-2">Mensagem</label>
+                            <textarea id="message" name="message" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Digite sua mensagem aqui..." required></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-colors">Enviar Mensagem</button>
+                        </div>
                     </form>
                 </div>
             </div>
-        </div>
+        </section>
+    </main>
 
-        <div id="employee-dashboard-view" style="display: none;">
-             <header class="detail-header">
-                <button class="logout-button back-to-services-button" title="Sair"><i data-lucide="log-out"></i></button>
-                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                <div class="header-text"><h1 id="employee-dashboard-title"></h1><p>As suas informações e tarefas.</p></div>
-            </header>
-            <div class="container">
-                <div id="reminders-container"></div>
+    <!-- TIMELINE DE SCROLL -->
+    <nav id="scroll-timeline" class="fixed right-5 top-1/2 -translate-y-1/2 z-40 opacity-0">
+        <ul class="flex flex-col space-y-2 items-end">
+            <li class="flex items-center">
+                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Início</span>
+                <a href="#inicio" title="Início" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="inicio"></a>
+            </li>
+            <li class="flex items-center">
+                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Sobre Nós</span>
+                <a href="#sobre" title="Sobre Nós" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="sobre"></a>
+            </li>
+            <li class="flex items-center">
+                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Empreendimentos</span>
+                <a href="#empreendimentos" title="Empreendimentos" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="empreendimentos"></a>
+            </li>
+            <li class="flex items-center">
+                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Diferenciais</span>
+                <a href="#diferenciais" title="Diferenciais" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="diferenciais"></a>
+            </li>
+            <li class="flex items-center">
+                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Contato</span>
+                <a href="#contato" title="Contato" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="contato"></a>
+            </li>
+        </ul>
+    </nav>
 
-                <!-- Eventos da Semana -->
-                <div id="weekly-events-container" class="list-container" style="margin-bottom: 2.5rem; padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); background-color: var(--card-background);">
-                    <!-- O conteúdo será preenchido pelo JavaScript -->
+    <!-- RODAPÉ -->
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto px-4 sm:px-6 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+                <div>
+                    <a href="#" class="inline-block mb-4">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Construtora" class="h-16 sm:h-20 w-auto mx-auto md:mx-0">
+                    </a>
+                    <p class="text-gray-400 text-sm">Construindo mais que edifícios, criando lares e espaços para a vida acontecer.</p>
                 </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Links Rápidos</h4>
+                    <ul>
+                        <li class="mb-2"><a href="#sobre" class="text-gray-400 hover:text-white">Sobre Nós</a></li>
+                        <li class="mb-2"><a href="#empreendimentos" class="text-gray-400 hover:text-white">Empreendimentos</a></li>
+                        <li class="mb-2"><a href="#contato" class="text-gray-400 hover:text-white">Contato</a></li>
+                        <li class="mb-2"><a href="login.html" class="text-gray-400 hover:text-white">Área do Funcionário</a></li>
+                        <li class="mb-2"><a href="#" class="text-gray-400 hover:text-white">Política de Privacidade</a></li>
+                    </ul>
+                </div>
+                <div>
+                     <h4 class="text-lg font-semibold mb-4">Siga-nos</h4>
+                     <div class="flex space-x-4 justify-center md:justify-start">
+                        <a href="#" class="text-gray-400 hover:text-white transition-transform transform hover:scale-125"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-transform transform hover:scale-125"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-instagram"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-transform transform hover:scale-125"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg></a>
+                     </div>
+                </div>
+            </div>
+            <div class="mt-12 border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
+                <p>&copy; 2024 Sua Construtora. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
 
-                <!-- Container para os cards -->
-                <div id="employee-cards-container"></div>
+    <!-- MODAL DE HISTÓRIA -->
+    <div id="history-modal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-transform duration-300 scale-95">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold text-gray-900">Nossa História</h3>
+                <button id="close-history-modal-btn" class="text-gray-500 hover:text-red-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <p class="text-gray-700 leading-relaxed mb-4">Especializada no desenvolvimento de soluções completas para a construção civil, a ENIPRO ENGENHARIA transforma projetos em realidade. Nosso compromisso primordial é com a satisfação de nossos clientes e a excelência de nossa equipe, unindo técnica e inovação para construir o futuro.</p>
+                <p class="text-gray-700 leading-relaxed mb-4">Desde 1998, sob a direção de especialistas com vasta experiência no mercado, construímos uma trajetória de sucesso e credibilidade. Contamos com um time de profissionais altamente qualificados e em constante treinamento, garantindo a segurança, a confiabilidade e a qualidade superior que cada obra exige.</p>
+                <p class="text-gray-700 leading-relaxed mb-4">Com mais de 25 anos de experiência, dominamos todas as etapas do processo construtivo, desde a concepção e especificação do projeto até os ajustes finais. Atendemos com a mesma dedicação e competência empresas de pequeno, médio e grande porte nos setores comercial, industrial e de empreendimentos imobiliários.</p>
+                <p class="text-gray-700 leading-relaxed">Nosso maior orgulho é o portfólio que construímos e, principalmente, a fidelidade de nossos clientes e parceiros, que nos credenciam como uma empresa respeitada e frequentemente recomendada. Isso é resultado de uma equipe engajada, que encontra na ENIPRO um ambiente de respeito, capacitação e motivação para entregar sempre o melhor.</p>
             </div>
         </div>
     </div>
 
-    <!-- ############# MODAIS GLOBAIS ############# -->
-    <div id="employee-permission-modal" class="modal">
-        <div class="modal-content large">
-            <span class="close-button" id="employee-permission-modal-close">&times;</span>
-            <h2 id="employee-permission-title">Editar Acessos</h2>
-            <form id="employee-permission-form">
-                <input type="hidden" id="permission-employee-id">
-                <div class="form-group"><label for="permission-employee-password">Nova Senha (deixe em branco para não alterar)</label><input type="password" id="permission-employee-password" autocomplete="new-password"></div>
-                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">Permissões de Visualização</h3>
-                <div id="permissions-checkboxes" class="form-grid" style="grid-template-columns: 1fr 1fr;"></div>
-                <button type="submit" class="btn-submit"><i data-lucide="save"></i> Guardar Alterações</button>
-            </form>
+    <!-- MODAL SIMPLES (PARA OS CARDS DA PÁGINA INICIAL) -->
+    <div id="project-modal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row transform transition-transform duration-300 scale-95 overflow-y-auto">
+            <button id="close-modal-btn" class="absolute top-2 right-2 md:-top-3 md:-right-3 text-white bg-gray-800 rounded-full h-8 w-8 flex items-center justify-center z-10 hover:bg-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="w-full md:w-3/5 p-2 md:p-4 flex-shrink-0">
+                <div class="relative h-64 md:h-full">
+                    <img id="modal-image" src="" alt="Foto do empreendimento" class="w-full h-full rounded-lg object-cover">
+                </div>
+            </div>
+            <div class="w-full md:w-2/5 p-6 flex flex-col justify-center">
+                <h3 id="modal-title" class="text-xl md:text-2xl font-bold text-gray-900 mb-2"></h3>
+                <p id="modal-location" class="text-md text-gray-500 mb-4"></p>
+                <p id="modal-description" class="text-gray-700 leading-relaxed"></p>
+            </div>
         </div>
     </div>
 
-    <div id="reminder-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="reminder-modal-close">&times;</span>
-            <h2 id="reminder-modal-title">Enviar Lembrete</h2>
-            <form id="reminder-form">
-                <input type="hidden" id="reminder-employee-id">
-                <div class="form-group">
-                    <label>Funcionário</label>
-                    <input type="text" id="reminder-employee-name" disabled>
-                </div>
-                <div class="form-group">
-                    <label for="reminder-message">Mensagem</label>
-                    <textarea id="reminder-message" rows="4" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="reminder-priority">Prioridade</label>
-                    <select id="reminder-priority">
-                        <option value="baixa">Baixa</option>
-                        <option value="media">Média</option>
-                        <option value="alta">Alta</option>
-                    </select>
-                </div>
-                 <div class="form-group">
-                    <label for="reminder-expires-at">Data de Expiração (Opcional)</label>
-                    <input type="date" id="reminder-expires-at">
-                </div>
-                <button type="submit" class="btn-submit"><i data-lucide="send"></i> Enviar Lembrete</button>
-            </form>
-        </div>
-    </div>
-    
-    <div id="description-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="description-modal-close">&times;</span>
-            <h2 id="description-modal-title">Descrição do Item</h2>
-            <p id="description-modal-text" style="margin-top: 1.5rem;"></p>
-        </div>
-    </div>
-    
-    <div id="genericModal" class="modal"><div class="modal-content"><span class="close-button" id="genericModalClose">&times;</span><h2 id="modalTitle"></h2><form id="modalForm"><div id="modalFields"></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar</button></form></div></div>
-    <div id="statusModal" class="modal"><div class="modal-content"><h2 id="statusModalTitle">Alterar Status</h2><p>Qual o novo status para este item?</p><div class="status-modal-actions"><button id="btnStatusParcial" class="action-button warning"><i data-lucide="package-open"></i> Devolução Parcial</button><button id="btnStatusCompleto" class="action-button danger"><i data-lucide="package-check"></i> Devolução Completa</button><button id="btnStatusCancelar" class="action-button secondary"><i data-lucide="x"></i> Cancelar</button></div></div></div>
-    <div id="image-preview-modal" class="modal">
-        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; padding: 1rem;">
-            <span class="close-button" id="image-preview-modal-close">&times;</span>
-            <img id="modal-image-content" src="" alt="Pré-visualização da Imagem" style="width: 100%; height: auto; max-height: 80vh; object-fit: contain;">
-        </div>
-    </div>
-    <div id="car-update-km-modal" class="modal"><div class="modal-content"><span class="close-button" id="car-update-km-modal-close">&times;</span><h2 id="car-update-km-modal-title">Atualizar KM</h2><form id="car-update-km-form"><input type="hidden" id="car-update-km-id"><div class="form-grid"><div class="form-group"><label for="car-update-km-input">Nova Quilometragem</label><input type="number" id="car-update-km-input" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Atualizar</button></form></div></div>
+    <!-- MODAL DE TODOS OS PROJETOS (GALERIA COMPLETA) -->
+    <div id="all-projects-modal" class="modal fixed inset-0 bg-black bg-opacity-80 z-[110] flex items-center justify-center p-2 sm:p-4 transition-opacity duration-300 opacity-0 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col md:flex-row transform transition-transform duration-300 scale-95">
+             <!-- Botão de Fechar -->
+            <button id="close-all-projects-modal-btn" class="absolute top-2 right-2 md:-top-3 md:-right-3 text-white bg-gray-800 rounded-full h-8 w-8 flex items-center justify-center z-20 hover:bg-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
-    <!-- Templates dos Sistemas (ocultos, para serem clonados) -->
-    <div id="system-templates" style="display: none;">
-        <div data-template="rental">
-            <div id="rental-app-container">
-                <div id="main-view" class="view">
-                    <div class="container">
-                        <header>
-                            <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                            <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                            <div class="header-text">
-                                <h1>Gerenciador de Obras</h1>
-                                <p>Controle de entradas e saídas de equipamentos em tempo real.</p>
-                            </div>
-                        </header>
-                        <section class="actions-container">
-                            <button id="btnNovaObra" class="action-button"><i data-lucide="plus-circle"></i> Cadastrar Obra</button>
-                            <button id="btnNovoFornecedor" class="action-button"><i data-lucide="truck"></i> Cadastrar Fornecedor</button>
-                            <button id="btnNovoEquipamento" class="action-button"><i data-lucide="wrench"></i> Cadastrar Equipamento</button>
-                            <button id="btnNovoFuncionario" class="action-button"><i data-lucide="user-plus"></i> Cadastrar Funcionário</button>
-                        </section>
-                        <main class="entry-form-container">
-                            <h2>Lançamento de Equipamento</h2>
-                            <form id="main-form"><div class="form-grid"><div class="form-group"><label for="selectCliente">Cliente/Obra</label><div class="select-with-button"><select id="selectCliente" required></select><button type="button" id="btnFastAddCliente" class="btn-add-inside" title="Adicionar Novo Cliente">+</button></div></div><div class="form-group"><label for="inputEndereco">Endereço</label><input type="text" id="inputEndereco" disabled placeholder="Preenchido automaticamente"></div><div class="form-group"><label for="inputCidade">Cidade</label><input type="text" id="inputCidade" disabled placeholder="Preenchido automaticamente"></div><div class="form-group"><label for="selectFornecedor">Fornecedor</label><div class="select-with-button"><select id="selectFornecedor" required></select><button type="button" id="btnFastAddFornecedor" class="btn-add-inside" title="Adicionar Novo Fornecedor">+</button></div></div><div class="form-group"><label for="selectEquipamento">Equipamento</label><div class="select-with-button"><select id="selectEquipamento" required></select><button type="button" id="btnFastAddEquipamento" class="btn-add-inside" title="Adicionar Novo Equipamento">+</button></div></div><div class="form-group"><label for="selectFuncionario">Funcionário</label><div class="select-with-button"><select id="selectFuncionario" required></select><button type="button" id="btnFastAddFuncionario" class="btn-add-inside" title="Adicionar Novo Funcionário">+</button></div></div><div class="form-group"><label for="inputCtr">Nº CTR</label><input type="number" id="inputCtr" required></div><div class="form-group"><label for="inputValor">Valor da Cobrança (R$)</label><input type="number" step="0.01" id="inputValor" required></div><div class="form-group"><label for="inputDataInicio">Data Vencimento</label><input type="date" id="inputDataInicio" required></div><div class="form-group"><label for="selectFrequencia">Frequencia de reagendamento</label><select id="selectFrequencia"><option value="unico">Sem Reagendamento</option><option value="diario">Diário</option><option value="semanal">Semanal</option><option value="mensal">Mensal</option></select></div><div class="form-group form-group-obs"><label for="inputObservacao">Observação</label><textarea id="inputObservacao" rows="1"></textarea></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Lançamento</button></form>
-                        </main>
-                        <section class="data-table-container">
-                            <div class="table-header"><h2>Equipamentos Locados</h2></div>
-                            <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterCliente" placeholder="Filtrar por cliente..."></div><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterEquipamento" placeholder="Filtrar por equipamento..."></div><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filterFornecedor" placeholder="Filtrar por fornecedor..."></div><div class="filter-group"><i data-lucide="user" class="filter-icon"></i><input type="text" id="filterFuncionario" placeholder="Filtrar por funcionário..."></div><div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filterStatus"><option value="all">Todos os Status</option><option value="Locado">Locado</option><option value="Parcial">Parcial</option></select></div></div>
-                            <div class="table-wrapper"><table><thead><tr><th>Cliente</th><th>Equipamento</th><th>Fornecedor</th><th>Funcionário</th><th>CTR</th><th>Valor</th><th>Próximo Venc.</th><th>Frequência</th><th>Status</th><th>Ações</th></tr></thead><tbody id="dataTableBody"></tbody></table></div>
-                        </section>
+            <!-- Coluna da Esquerda: Lista de Projetos -->
+            <div class="w-full md:w-1/3 flex flex-col border-b md:border-b-0 md:border-r border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">Portfólio de Obras</h3>
+                    <div id="all-projects-filters" class="flex space-x-2 mt-3">
+                         <button class="all-projects-filter-btn flex-1 bg-green-600 text-white px-3 py-1 text-sm rounded-md" data-status-filter="all">Todos</button>
+                         <button class="all-projects-filter-btn flex-1 bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md" data-status-filter="finalizada">Finalizadas</button>
+                         <button class="all-projects-filter-btn flex-1 bg-gray-200 text-gray-700 px-3 py-1 text-sm rounded-md" data-status-filter="projeto">Em Andamento</button>
                     </div>
                 </div>
-            </div>
-            <!-- Modal de Edição de Lançamento -->
-            <div id="edit-rental-modal" class="modal">
-                <div class="modal-content large">
-                    <span class="close-button" id="edit-rental-modal-close">&times;</span>
-                    <h2>Editar Lançamento</h2>
-                    <form id="edit-rental-form">
-                        <input type="hidden" id="edit-rental-id">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="edit-selectCliente">Cliente/Obra</label>
-                                <select id="edit-selectCliente" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-inputEndereco">Endereço</label>
-                                <input type="text" id="edit-inputEndereco" disabled placeholder="Preenchido automaticamente">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-inputCidade">Cidade</label>
-                                <input type="text" id="edit-inputCidade" disabled placeholder="Preenchido automaticamente">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-selectFornecedor">Fornecedor</label>
-                                <select id="edit-selectFornecedor" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-selectEquipamento">Equipamento</label>
-                                <select id="edit-selectEquipamento" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-selectFuncionario">Funcionário</label>
-                                <select id="edit-selectFuncionario" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-inputCtr">Nº CTR</label>
-                                <input type="number" id="edit-inputCtr" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-inputValor">Valor da Cobrança (R$)</label>
-                                <input type="number" step="0.01" id="edit-inputValor" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-inputDataInicio">Data Vencimento</label>
-                                <input type="date" id="edit-inputDataInicio" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-selectFrequencia">Frequencia de reagendamento</label>
-                                <select id="edit-selectFrequencia">
-                                    <option value="unico">Sem Reagendamento</option>
-                                    <option value="diario">Diário</option>
-                                    <option value="semanal">Semanal</option>
-                                    <option value="mensal">Mensal</option>
-                                </select>
-                            </div>
-                            <div class="form-group form-group-obs">
-                                <label for="edit-inputObservacao">Observação</label>
-                                <textarea id="edit-inputObservacao" rows="1"></textarea>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Alterações</button>
-                    </form>
+                <div id="all-projects-list" class="flex-1 overflow-y-auto p-2 h-40 md:h-auto">
+                    <!-- Lista será populada pelo JS -->
                 </div>
             </div>
-        </div>
-        <div data-template="stock">
-           <div id="stock-app-container">
-                <div class="container">
-                    <header>
-                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                        <div class="header-text"><h1>Controle de Estoque</h1><p>Gerenciamento de materiais e ferramentas.</p></div>
-                    </header>
-                    <section class="actions-container"><button id="btn-add-stock-item" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Item</button></section>
-                    <section class="data-table-container">
-                        <div class="table-header"><h2>Itens em Estoque</h2></div>
-                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-stock-name" placeholder="Filtrar por nome..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-stock-code" placeholder="Filtrar por código..."></div><div class="filter-group"><i data-lucide="tag" class="filter-icon"></i><input type="text" id="filter-stock-category" placeholder="Filtrar por categoria..."></div></div>
-                        <div class="table-wrapper"><table><thead><tr><th>Item</th><th>Código</th><th>Categoria</th><th>Qtd. Atual</th><th>Unidade</th><th>Img.</th><th>Ações</th></tr></thead><tbody id="stock-table-body"></tbody></table></div>
-                    </section>
+
+            <!-- Coluna da Direita: Detalhes do Projeto -->
+            <div id="all-projects-details" class="w-full md:w-2/3 flex flex-col p-4 md:p-6 overflow-y-auto">
+                <!-- Imagem Principal e Navegação -->
+                <div class="relative w-full h-48 sm:h-64 md:h-3/5 mb-4 flex-shrink-0">
+                    <img id="all-projects-image" src="https://placehold.co/800x600/e2e8f0/2d3748?text=Selecione+um+projeto" alt="Foto do empreendimento selecionado" class="w-full h-full rounded-lg object-cover">
+                    <button id="all-projects-prev-btn" class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-2 rounded-full hover:bg-opacity-60 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <button id="all-projects-next-btn" class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-2 rounded-full hover:bg-opacity-60 transition-colors">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+                <!-- Descrição Fixa -->
+                <div class="flex-grow">
+                    <h3 id="all-projects-title" class="text-xl md:text-2xl font-bold text-gray-900 mb-1"></h3>
+                    <p id="all-projects-location" class="text-md text-gray-500 mb-3"></p>
+                    <p id="all-projects-description" class="text-gray-700 leading-relaxed"></p>
                 </div>
             </div>
-            <div id="stock-item-modal" class="modal"><div class="modal-content"><span class="close-button" id="stock-item-modal-close">&times;</span><h2 id="stock-item-modal-title">Adicionar Novo Item</h2><form id="stock-item-form"><input type="hidden" id="stock-item-id"><div class="form-grid"><div class="form-group"><label for="stock-item-name">Nome do Item</label><input type="text" id="stock-item-name" required></div><div class="form-group"><label for="stock-item-code">Código/SKU</label><input type="text" id="stock-item-code"></div><div class="form-group"><label for="stock-item-category">Categoria</label><input type="text" id="stock-item-category"></div><div class="form-group"><label for="stock-item-quantity">Quantidade Inicial</label><input type="number" id="stock-item-quantity" required></div><div class="form-group"><label for="stock-item-unit">Unidade (Ex: un, kg, m)</label><input type="text" id="stock-item-unit" value="un" required></div><div class="form-group"><label for="stock-item-image">URL da Imagem</label><input type="url" id="stock-item-image" placeholder="https://exemplo.com/imagem.png"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Item</button></form></div></div>
-            <div id="stock-movement-modal" class="modal"><div class="modal-content"><span class="close-button" id="stock-movement-modal-close">&times;</span><h2 id="stock-movement-modal-title">Registrar Movimentação</h2><form id="stock-movement-form"><input type="hidden" id="stock-movement-item-id"><div class="form-grid"><div class="form-group"><label for="movement-type">Tipo de Movimentação</label><select id="movement-type"><option value="saida">Saída</option><option value="entrada">Entrada</option></select></div><div class="form-group"><label for="movement-quantity">Quantidade</label><input type="number" id="movement-quantity" required min="1"></div></div><div class="form-group"><label for="movement-notes">Observação / Destino</label><textarea id="movement-notes" rows="2"></textarea></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar</button></form></div></div>
-        </div>
-        <div data-template="car">
-            <div id="car-app-container">
-                <div class="container">
-                     <header>
-                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                        <div class="header-text"><h1>Controle de Veículos</h1><p>Gerenciamento de frota e manutenção preventiva.</p></div>
-                    </header>
-                    <section class="actions-container"><button id="btn-add-car" class="action-button"><i data-lucide="plus"></i> Adicionar Novo Veículo</button></section>
-                     <section class="data-table-container">
-                        <div class="table-header"><h2>Frota de Veículos</h2></div>
-                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-car-name" placeholder="Filtrar por veículo..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-car-plate" placeholder="Filtrar por placa..."></div></div>
-                        <div id="car-card-container" class="car-card-grid"></div>
-                    </section>
-                </div>
-            </div>
-            <div id="car-item-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-item-modal-close">&times;</span><h2 id="car-item-modal-title">Adicionar Veículo</h2><form id="car-item-form"><input type="hidden" id="car-item-id"><div class="form-grid"><div class="form-group"><label for="car-item-name">Veículo (Marca/Modelo)</label><input type="text" id="car-item-name" required></div><div class="form-group"><label for="car-item-plate">Placa</label><input type="text" id="car-item-plate" required></div><div class="form-group"><label for="car-item-km">Quilometragem Inicial</label><input type="number" id="car-item-km" required></div><div class="form-group"><label for="car-item-cc">C/C</label><input type="text" id="car-item-cc"></div><div class="form-group"><label for="car-item-driver">Condutor (Funcionário)</label><select id="car-item-driver"></select></div><div class="form-group"><label for="car-item-license">Licenciamento</label><input type="date" id="car-item-license"></div><div class="form-group"><label for="car-item-renavan">Renavan</label><input type="text" id="car-item-renavan"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Veículo</button></form></div></div>
-            <div id="car-maintenance-modal" class="modal"><div class="modal-content large"><span class="close-button" id="car-maintenance-modal-close">&times;</span><h2 id="car-maintenance-modal-title">Registrar Manutenção</h2><form id="car-maintenance-form"><input type="hidden" id="car-maintenance-id"><div class="form-group full-width"><label for="car-maintenance-type">Tipo de Serviço Realizado</label><input type="text" id="car-maintenance-type" required placeholder="Ex: Troca de óleo e filtro, Revisão dos freios..."></div><div class="form-grid"><div class="form-group"><label for="car-maintenance-km">KM do Serviço</label><input type="number" id="car-maintenance-km" required></div><div class="form-group"></div><div class="form-group"><label for="car-next-oil-km">Próx. Troca Óleo (KM)</label><input type="number" id="car-next-oil-km"></div><div class="form-group"><label for="car-next-oil-date">Data Próx. Troca Óleo</label><input type="date" id="car-next-oil-date"></div><div class="form-group"><label for="car-next-maintenance-km">Próx. Manutenção (KM)</label><input type="number" id="car-next-maintenance-km"></div><div class="form-group"><label for="car-next-maintenance-date">Data Próx. Manutenção</label><input type="date" id="car-next-maintenance-date"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Registrar</button></form></div></div>
-        </div>
-        <div data-template="tool">
-            <div id="tool-app-container">
-                <div class="container">
-                     <header>
-                        <button class="back-to-admin-dashboard-button back-to-services-button"><i data-lucide="arrow-left"></i></button>
-                        <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                        <div class="header-text"><h1>Controle de Ferramentas</h1><p>Gerenciamento de ferramentas elétricas e manuais.</p></div>
-                    </header>
-                    <section class="actions-container"><button id="btn-add-tool" class="action-button"><i data-lucide="plus"></i> Adicionar Nova Ferramenta</button><button id="btn-view-tool-history" class="action-button secondary"><i data-lucide="history"></i> Ver Histórico</button></section>
-                     <section class="data-table-container">
-                        <div class="table-header"><h2>Inventário de Ferramentas</h2></div>
-                        <div class="table-filters"><div class="filter-group"><i data-lucide="search" class="filter-icon"></i><input type="text" id="filter-tool-name" placeholder="Filtrar por nome..."></div><div class="filter-group"><i data-lucide="hash" class="filter-icon"></i><input type="text" id="filter-tool-code" placeholder="Filtrar por código..."></div><div class="filter-group"><i data-lucide="list-filter" class="filter-icon"></i><select id="filter-tool-status"><option value="all">Todos os Status</option><option value="Disponível">Disponível</option><option value="Em Uso">Em Uso</option><option value="Em Manutenção">Em Manutenção</option><option value="Descartada">Descartada</option></select></div></div>
-                        <div class="table-wrapper"><table><thead><tr><th>Ferramenta</th><th>Código</th><th>Status</th><th>Local/Responsável</th><th>Ações</th></tr></thead><tbody id="tool-table-body"></tbody></table></div>
-                    </section>
-                </div>
-            </div>
-            <div id="tool-item-modal" class="modal"><div class="modal-content large"><span class="close-button" id="tool-item-modal-close">&times;</span><h2 id="tool-item-modal-title">Adicionar Ferramenta</h2><form id="tool-item-form"><input type="hidden" id="tool-item-id"><div class="form-grid"><div class="form-group"><label for="tool-item-name">Nome</label><input type="text" id="tool-item-name" required></div><div class="form-group"><label for="tool-item-brand">Marca</label><input type="text" id="tool-item-brand"></div><div class="form-group"><label for="tool-item-model">Modelo</label><input type="text" id="tool-item-model"></div><div class="form-group"><label for="tool-item-code">Código / Nº Série</label><input type="text" id="tool-item-code"></div><div class="form-group"><label for="tool-item-buy-date">Data da Compra</label><input type="date" id="tool-item-buy-date"></div><div class="form-group"><label for="tool-item-value">Valor (R$)</label><input type="number" step="0.01" id="tool-item-value"></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Salvar Ferramenta</button></form></div></div>
-            <div id="tool-assign-modal" class="modal"><div class="modal-content"><span class="close-button" id="tool-assign-modal-close">&times;</span><h2 id="tool-assign-modal-title">Retirar Ferramenta</h2><form id="tool-assign-form"><input type="hidden" id="tool-assign-id"><div class="form-grid"><div class="form-group"><label for="tool-assign-employee">Funcionário Responsável</label><select id="tool-assign-employee" required></select></div><div class="form-group"><label for="tool-assign-project">Obra de Destino</label><select id="tool-assign-project" required></select></div><div class="form-group"><label for="tool-assign-date">Data de Retirada</label><input type="date" id="tool-assign-date" required></div></div><button type="submit" class="btn-submit"><i data-lucide="check"></i> Confirmar Retirada</button></form></div></div>
-            <div id="tool-maintenance-modal" class="modal"><div class="modal-content"><span class="close-button" id="tool-maintenance-modal-close">&times;</span><h2 id="tool-maintenance-modal-title">Manutenção da Ferramenta</h2><form id="tool-maintenance-form"><input type="hidden" id="tool-maintenance-id"><div class="form-grid" style="grid-template-columns: 1fr;"><div class="form-group"><label for="tool-maintenance-status">Status</label><select id="tool-maintenance-status"><option value="Em Manutenção">Enviar para Manutenção</option><option value="Disponível">Retornou da Manutenção</option></select></div><div class="form-group"><label for="tool-maintenance-next-date">Data da Próxima Manutenção</label><input type="date" id="tool-maintenance-next-date"></div><div class="form-group"><label for="tool-maintenance-notes">Observações</label><textarea id="tool-maintenance-notes" rows="3"></textarea></div></div><button type="submit" class="btn-submit"><i data-lucide="save"></i> Atualizar</button></form></div></div>
-            <div id="tool-history-modal" class="modal"><div class="modal-content large"><span class="close-button" id="tool-history-modal-close">&times;</span><h2>Histórico da Ferramenta</h2><div class="form-group" style="margin-top: 1.5rem;"><label for="select-tool-history">Selecione uma Ferramenta</label><select id="select-tool-history"></select></div><div id="tool-history-log" class="vencimentos-list" style="margin-top: 1.5rem;"></div></div></div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="script.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // --- BANCO DE DADOS DOS PROJETOS ---
+        const allProjects = [
+            { id: 0, title: 'Laponia', location: 'Itu, SP', category: 'industrial', status: 'finalizada', description: 'Projeto industrial de grande porte com soluções inovadoras em logística e produção. A obra foi concluída com foco em sustentabilidade e eficiência energética.', images: ['https://photos.fife.usercontent.google.com/pw/AP1GczNjPXTIql6sLoPpnWBNFDONuOMPhxzkhOMcbcBrOg6_w-veBukDIZc=w1359-h913-s-no-gm?authuser=1', 'https://lh3.googleusercontent.com/pw/AP1GczPGrCj360amtISdNhpazCh8OYak6XBHhD-EvP5yeUR98LDftPZ-9zG4qBfxmmS_r_tn_7PDPiNwU1iJaDpagc49FWxtFwh4IrK-FYlaW3gGXvE_x-U2pMdy4POdxELffGxX_Ll5mx2g2fe6IK3_coY=w886-h661-s-no-gm?authuser=1'] },
+            { id: 1, title: 'Symrise', location: 'Sorocaba, SP', category: 'industrial', status: 'finalizada', description: 'Edificação corporativa com design moderno e sustentável. O projeto incluiu laboratórios de alta tecnologia e áreas de convivência para colaboradores.', images: ['https://lh3.googleusercontent.com/pw/AP1GczPGrCj360amtISdNhpazCh8OYak6XBHhD-EvP5yeUR98LDftPZ-9zG4qBfxmmS_r_tn_7PDPiNwU1iJaDpagc49FWxtFwh4IrK-FYlaW3gGXvE_x-U2pMdy4POdxELffGxX_Ll5mx2g2fe6IK3_coY=w886-h661-s-no-gm?authuser=1', 'https://photos.fife.usercontent.google.com/pw/AP1GczNjPXTIql6sLoPpnWBNFDONuOMPhxzkhOMcbcBrOg6_w-veBukDIZc=w1359-h913-s-no-gm?authuser=1'] },
+            { id: 2, title: 'Residencial Sol Nascente', location: 'Campinas, SP', category: 'residencial', status: 'projeto', description: 'Condomínio de apartamentos em fase de projeto. Foco em áreas de lazer completas e integração com a natureza.', images: ['https://placehold.co/800x600/f97316/ffffff?text=Sol+Nascente+1', 'https://placehold.co/800x600/f97316/ffffff?text=Sol+Nascente+2'] },
+            { id: 3, title: 'Centro Comercial Plaza', location: 'Jundiaí, SP', category: 'comercial', status: 'finalizada', description: 'Complexo de lojas e escritórios entregue com sucesso, tornando-se um novo ponto de referência na cidade.', images: ['https://placehold.co/800x600/3b82f6/ffffff?text=Plaza+1', 'https://placehold.co/800x600/3b82f6/ffffff?text=Plaza+2'] },
+            { id: 4, title: 'Parque Industrial Inova', location: 'Sumaré, SP', category: 'industrial', status: 'projeto', description: 'Projeto de um parque industrial focado em empresas de tecnologia. Infraestrutura de ponta em andamento.', images: ['https://placehold.co/800x600/84cc16/ffffff?text=Inova+1', 'https://placehold.co/800x600/84cc16/ffffff?text=Inova+2'] },
+            { id: 5, title: 'Edifício Corporativo Delta', location: 'São Paulo, SP', category: 'comercial', status: 'finalizada', description: 'Torre corporativa de alto padrão na capital paulista, com certificação de sustentabilidade LEED Gold.', images: ['https://placehold.co/800x600/6366f1/ffffff?text=Delta+1', 'https://placehold.co/800x600/6366f1/ffffff?text=Delta+2'] },
+            { id: 6, title: 'Condomínio Bosque Real', location: 'Valinhos, SP', category: 'residencial', status: 'finalizada', description: 'Condomínio de casas de alto padrão entregue, com ênfase em segurança e áreas verdes preservadas.', images: ['https://placehold.co/800x600/10b981/ffffff?text=Bosque+Real+1', 'https://placehold.co/800x600/10b981/ffffff?text=Bosque+Real+2'] },
+            { id: 7, title: 'Galpão Logístico Express', location: 'Itupeva, SP', category: 'industrial', status: 'finalizada', description: 'Centro de distribuição estratégico com docas e pátio de manobra otimizados para grandes operações.', images: ['https://placehold.co/800x600/a7f3d0/000000?text=Express+1', 'https://placehold.co/800x600/a7f3d0/000000?text=Express+2'] },
+            { id: 8, title: 'Torre Médica Vitalis', location: 'Sorocaba, SP', category: 'comercial', status: 'projeto', description: 'Futuro centro médico que abrigará consultórios e clínicas, com projeto arquitetônico focado no bem-estar.', images: ['https://placehold.co/800x600/ec4899/ffffff?text=Vitalis+1', 'https://placehold.co/800x600/ec4899/ffffff?text=Vitalis+2'] },
+            { id: 9, title: 'Residencial Vista do Vale', location: 'Vinhedo, SP', category: 'residencial', status: 'projeto', description: 'Lançamento de apartamentos com vista privilegiada e conceito de clube residencial. Obras em andamento.', images: ['https://placehold.co/800x600/f59e0b/ffffff?text=Vista+do+Vale+1', 'https://placehold.co/800x600/f59e0b/ffffff?text=Vista+do+Vale+2'] },
+        ];
+
+        // --- RENDERIZAÇÃO INICIAL E FILTROS DA PÁGINA PRINCIPAL ---
+        const projectGallery = document.getElementById('project-gallery');
+        const filterButtons = document.querySelectorAll('#project-filters .filter-btn');
+
+        function createProjectCard(project) {
+            const card = document.createElement('div');
+            card.className = `project-item ${project.category}`;
+            card.setAttribute('data-category', project.category);
+            card.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden group h-full flex flex-col">
+                    <div class="relative">
+                        <img src="${project.images[0]}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/2d3748?text=Imagem+Indisponível';" 
+                             alt="${project.title}" class="w-full h-60 object-cover group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <button class="open-modal-btn text-white text-lg font-bold cursor-pointer bg-transparent border-none" data-project-id="${project.id}">Ver Detalhes</button>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-900">${project.title}</h3>
+                        <p class="text-sm text-gray-500 mb-4">${project.location}</p>
+                        <p class="text-gray-700 text-sm flex-grow">${project.description.substring(0, 80)}...</p>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderMainGallery(filter = 'residencial') {
+            projectGallery.classList.add('hiding');
+
+            setTimeout(() => {
+                projectGallery.innerHTML = '';
+                const filteredProjects = allProjects
+                    .filter(p => p.category === filter)
+                    .slice(0, 3);
+
+                filteredProjects.forEach(project => {
+                    projectGallery.appendChild(createProjectCard(project));
+                });
+                addEventListenersToModalButtons();
+                projectGallery.classList.remove('hiding');
+            }, 400); // Duração da transição
+        }
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.classList.contains('active')) return;
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const filter = button.getAttribute('data-filter');
+                renderMainGallery(filter);
+            });
+        });
+        
+        // --- LÓGICA DOS MODAIS ---
+        const projectModal = document.getElementById('project-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalImage = document.getElementById('modal-image');
+        const modalTitle = document.getElementById('modal-title');
+        const modalLocation = document.getElementById('modal-location');
+        const modalDescription = document.getElementById('modal-description');
+        
+        const historyModal = document.getElementById('history-modal');
+        const openHistoryModalBtn = document.getElementById('open-history-modal-btn');
+        const closeHistoryModalBtn = document.getElementById('close-history-modal-btn');
+
+        function openSimpleModal(projectId) {
+            const project = allProjects.find(p => p.id == projectId);
+            if (!project) return;
+            
+            modalImage.src = project.images[0];
+            modalTitle.textContent = project.title;
+            modalLocation.textContent = project.location;
+            modalDescription.textContent = project.description;
+            
+            projectModal.classList.remove('hidden');
+            setTimeout(() => {
+                projectModal.classList.remove('opacity-0');
+                projectModal.querySelector('.transform').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSimpleModal() {
+            projectModal.classList.add('opacity-0');
+            projectModal.querySelector('.transform').classList.add('scale-95');
+            setTimeout(() => {
+                projectModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        function openHistoryModal() {
+            historyModal.classList.remove('hidden');
+            setTimeout(() => {
+                historyModal.classList.remove('opacity-0');
+                historyModal.querySelector('.transform').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeHistoryModal() {
+            historyModal.classList.add('opacity-0');
+            historyModal.querySelector('.transform').classList.add('scale-95');
+            setTimeout(() => {
+                historyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        closeModalBtn.addEventListener('click', closeSimpleModal);
+        projectModal.addEventListener('click', (e) => {
+            if (e.target === projectModal) closeSimpleModal();
+        });
+        
+        openHistoryModalBtn.addEventListener('click', openHistoryModal);
+        closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
+        historyModal.addEventListener('click', (e) => {
+            if (e.target === historyModal) closeHistoryModal();
+        });
+
+        function addEventListenersToModalButtons() {
+            document.querySelectorAll('.open-modal-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    openSimpleModal(e.target.dataset.projectId);
+                });
+            });
+        }
+
+
+        // --- LÓGICA DO MODAL DE GALERIA COMPLETA ---
+        const allProjectsModal = document.getElementById('all-projects-modal');
+        const allProjectsModalContent = allProjectsModal.querySelector('.transform');
+        const openAllProjectsBtn = document.getElementById('open-all-projects-modal-btn');
+        const closeAllProjectsBtn = document.getElementById('close-all-projects-modal-btn');
+        const allProjectsListContainer = document.getElementById('all-projects-list');
+        const allProjectsFilterBtns = document.querySelectorAll('.all-projects-filter-btn');
+
+        const detailsImage = document.getElementById('all-projects-image');
+        const detailsTitle = document.getElementById('all-projects-title');
+        const detailsLocation = document.getElementById('all-projects-location');
+        const detailsDescription = document.getElementById('all-projects-description');
+        const detailsPrevBtn = document.getElementById('all-projects-prev-btn');
+        const detailsNextBtn = document.getElementById('all-projects-next-btn');
+
+        let currentGalleryProject = null;
+        let currentGalleryImageIndex = 0;
+
+        function renderAllProjectsList(statusFilter = 'all') {
+            allProjectsListContainer.innerHTML = '';
+            const filtered = allProjects.filter(p => statusFilter === 'all' || p.status === statusFilter);
+            
+            filtered.forEach(project => {
+                const listItem = document.createElement('div');
+                listItem.className = 'project-list-item p-3 cursor-pointer hover:bg-gray-100 rounded-md transition-colors';
+                listItem.textContent = project.title;
+                listItem.dataset.projectId = project.id;
+                allProjectsListContainer.appendChild(listItem);
+            });
+            
+            allProjectsListContainer.querySelectorAll('.project-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const projectId = item.dataset.projectId;
+                    displayProjectDetails(projectId);
+                    allProjectsListContainer.querySelectorAll('.project-list-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+
+            if (filtered.length > 0) {
+                 displayProjectDetails(filtered[0].id);
+                 allProjectsListContainer.querySelector('.project-list-item').classList.add('active');
+            } else {
+                 detailsImage.src = 'https://placehold.co/800x600/e2e8f0/2d3748?text=Nenhum+projeto';
+                 detailsTitle.textContent = 'Nenhum projeto encontrado';
+                 detailsLocation.textContent = '';
+                 detailsDescription.textContent = '';
+                 currentGalleryProject = null;
+            }
+        }
+
+        function displayProjectDetails(projectId) {
+            const project = allProjects.find(p => p.id == projectId);
+            if (!project) return;
+            
+            currentGalleryProject = project;
+            currentGalleryImageIndex = 0;
+
+            detailsTitle.textContent = project.title;
+            detailsLocation.textContent = project.location;
+            detailsDescription.textContent = project.description;
+            updateGalleryImage();
+        }
+
+        function updateGalleryImage() {
+            if (!currentGalleryProject) return;
+            detailsImage.src = currentGalleryProject.images[currentGalleryImageIndex];
+        }
+        
+        detailsPrevBtn.addEventListener('click', () => {
+            if (!currentGalleryProject) return;
+            currentGalleryImageIndex = (currentGalleryImageIndex - 1 + currentGalleryProject.images.length) % currentGalleryProject.images.length;
+            updateGalleryImage();
+        });
+
+        detailsNextBtn.addEventListener('click', () => {
+            if (!currentGalleryProject) return;
+            currentGalleryImageIndex = (currentGalleryImageIndex + 1) % currentGalleryProject.images.length;
+            updateGalleryImage();
+        });
+        
+        allProjectsFilterBtns.forEach(button => {
+            button.addEventListener('click', () => {
+                allProjectsFilterBtns.forEach(btn => {
+                    btn.classList.remove('bg-green-600', 'text-white');
+                    btn.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                button.classList.add('bg-green-600', 'text-white');
+                button.classList.remove('bg-gray-200', 'text-gray-700');
+                renderAllProjectsList(button.dataset.statusFilter);
+            });
+        });
+
+        function openAllProjectsModal() {
+            renderAllProjectsList();
+            allProjectsModal.classList.remove('hidden');
+            setTimeout(() => {
+                allProjectsModal.classList.remove('opacity-0');
+                allProjectsModalContent.classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAllProjectsModal() {
+            allProjectsModal.classList.add('opacity-0');
+            allProjectsModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                allProjectsModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        openAllProjectsBtn.addEventListener('click', openAllProjectsModal);
+        closeAllProjectsBtn.addEventListener('click', closeAllProjectsModal);
+        allProjectsModal.addEventListener('click', (e) => {
+            if (e.target === allProjectsModal) closeAllProjectsModal();
+        });
+
+        // --- ANIMAÇÃO DE SCROLL ---
+        const scrollElements = document.querySelectorAll('.animate-on-scroll');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const delay = entry.target.dataset.delay || 0;
+                    setTimeout(() => {
+                        entry.target.classList.add('animated', entry.target.dataset.animation);
+                    }, delay);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        scrollElements.forEach(el => observer.observe(el));
+
+        // --- INICIALIZAÇÃO ---
+        renderMainGallery();
+
+        // Lidar com Esc para fechar qualquer modal aberto
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!projectModal.classList.contains('hidden')) closeSimpleModal();
+                if (!allProjectsModal.classList.contains('hidden')) closeAllProjectsModal();
+                if (!historyModal.classList.contains('hidden')) closeHistoryModal();
+            }
+        });
+
+        // Menu Mobile (código original)
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        mobileMenu.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') mobileMenu.classList.add('hidden');
+        });
+
+        // Efeito de scroll no header (código original)
+        const header = document.getElementById('header');
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > lastScrollTop && scrollTop > header.offsetHeight) {
+                header.style.top = '-100px';
+            } else {
+                header.style.top = '0';
+            }
+            if (scrollTop > 50) {
+                 header.classList.add('py-2');
+                 header.classList.remove('py-4');
+            } else {
+                 header.classList.add('py-4');
+                 header.classList.remove('py-2');
+            }
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        });
+
+        // --- LÓGICA DA TIMELINE DE SCROLL ---
+        const timeline = document.getElementById('scroll-timeline');
+        const timelineItems = document.querySelectorAll('#scroll-timeline li');
+        const sections = document.querySelectorAll('main section[id]');
+        let scrollTimeout;
+
+        function handleScroll() {
+            // Mostra a timeline
+            timeline.classList.add('visible');
+
+            // Limpa o timeout anterior e define um novo para esconder a timeline
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                timeline.classList.remove('visible');
+            }, 1500); // Esconde após 1.5s de inatividade
+
+            // Atualiza o dot ativo
+            let currentSectionId = '';
+            sections.forEach(section => {
+                const sectionTop = section.getBoundingClientRect().top;
+                // Considera a seção ativa quando seu topo passa da metade da tela
+                if (sectionTop < window.innerHeight / 2) {
+                    currentSectionId = section.id;
+                }
+            });
+
+            timelineItems.forEach(item => {
+                const dot = item.querySelector('.timeline-dot');
+                item.classList.remove('active');
+                if (dot && dot.getAttribute('data-section') === currentSectionId) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    });
+    </script>
 </body>
 </html>
