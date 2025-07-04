@@ -51,6 +51,60 @@ document.addEventListener('DOMContentLoaded', function () {
     let adminsData = {};
     let activeSystemCleanup = () => {};
 
+    // --- LÓGICA DO MODAL GENÉRICO ---
+    const genericModal = document.getElementById('genericModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalFields = document.getElementById('modalFields');
+    const modalForm = document.getElementById('modalForm');
+    let currentModalType = '';
+
+    const openGenericModal = (type) => {
+        currentModalType = type;
+        modalFields.innerHTML = '';
+        switch (type) {
+            case 'clientes':
+                modalTitle.textContent = 'Cadastrar Nova Obra/Cliente';
+                modalFields.innerHTML = `<div class="form-group"><label for="modalNomeCliente">Nome</label><input type="text" id="modalNomeCliente" required></div><div class="form-group"><label for="modalEndereco">Endereço</label><input type="text" id="modalEndereco" required></div><div class="form-group"><label for="modalCidade">Cidade</label><input type="text" id="modalCidade" required></div>`;
+                break;
+            case 'fornecedores':
+                modalTitle.textContent = 'Cadastrar Novo Fornecedor';
+                modalFields.innerHTML = `<div class="form-group"><label for="modalNomeFornecedor">Nome</label><input type="text" id="modalNomeFornecedor" required></div>`;
+                break;
+            case 'equipamentos':
+                modalTitle.textContent = 'Cadastrar Novo Equipamento';
+                modalFields.innerHTML = `<div class="form-group"><label for="modalNomeEquipamento">Nome</label><input type="text" id="modalNomeEquipamento" required></div>`;
+                break;
+            case 'funcionarios':
+                modalTitle.textContent = 'Cadastrar Novo Funcionário';
+                modalFields.innerHTML = `<div class="form-group"><label for="modalNomeFuncionario">Nome</label><input type="text" id="modalNomeFuncionario" required></div>`;
+                break;
+        }
+        genericModal.style.display = 'block';
+    };
+
+    const closeGenericModal = () => {
+        if (genericModal) genericModal.style.display = 'none';
+        if (modalForm) modalForm.reset();
+    };
+
+    document.getElementById('genericModalClose').addEventListener('click', closeGenericModal);
+
+    modalForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        let data = {};
+        switch (currentModalType) {
+            case 'clientes': data = { nome: document.getElementById('modalNomeCliente').value, endereco: document.getElementById('modalEndereco').value, cidade: document.getElementById('modalCidade').value }; break;
+            case 'fornecedores': data = { nome: document.getElementById('modalNomeFornecedor').value }; break;
+            case 'equipamentos': data = { nome: document.getElementById('modalNomeEquipamento').value }; break;
+            case 'funcionarios': data = { nome: document.getElementById('modalNomeFuncionario').value }; break;
+        }
+        if (currentModalType) {
+            database.ref(currentModalType).push(data)
+                .then(() => closeGenericModal())
+                .catch(error => console.error("Erro ao salvar: ", error));
+        }
+    });
+
     // --- CARREGAMENTO DE DADOS GLOBAIS ---
     function loadInitialData() {
         database.ref('funcionarios').on('value', snapshot => {
@@ -239,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         document.getElementById('btn-add-admin').addEventListener('click', () => openAdminPermissionModal());
+        document.getElementById('btn-add-employee').addEventListener('click', () => openGenericModal('funcionarios'));
     }
     
     function populateAdminLoginDropdown() {
@@ -379,6 +434,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function deleteEmployee(employeeId) {
+        const employeeName = funcionariosData[employeeId]?.nome || 'este funcionário';
+        if (confirm(`Tem certeza que deseja excluir ${employeeName}? Esta ação também removerá todos os lembretes associados.`)) {
+            const updates = {};
+            updates[`/funcionarios/${employeeId}`] = null;
+            updates[`/lembretes/${employeeId}`] = null;
+
+            database.ref().update(updates)
+                .then(() => {
+                    alert('Funcionário excluído com sucesso.');
+                })
+                .catch(err => {
+                    console.error("Erro ao excluir funcionário:", err);
+                    alert('Erro ao excluir funcionário.');
+                });
+        }
+    }
+
     function populateEmployeeLoginDropdown() {
         const employeeSelect = document.getElementById('employee-select-login');
         if(!employeeSelect) return;
@@ -416,6 +489,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
                             <i data-lucide="key-round"></i>
                         </button>
+                        <button class="action-button danger btn-delete-employee" data-id="${id}" title="Excluir Funcionário">
+                            <i data-lucide="trash-2"></i>
+                        </button>
                     `;
                 }
                 actionsHtml += `
@@ -438,6 +514,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.querySelectorAll('.btn-add-reminder').forEach(btn => {
             btn.onclick = (e) => openReminderModal(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
+        });
+
+        document.querySelectorAll('.btn-delete-employee').forEach(btn => {
+            btn.onclick = (e) => deleteEmployee(e.currentTarget.dataset.id);
         });
     }
 
@@ -986,13 +1066,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
         const container = adminSystemViewContainer;
         
-        const genericModal = document.getElementById('genericModal');
         const statusModal = document.getElementById('statusModal');
         const editRentalModal = container.querySelector('#edit-rental-modal');
 
-        const modalTitle = document.getElementById('modalTitle');
-        const modalFields = document.getElementById('modalFields');
-        const modalForm = document.getElementById('modalForm');
         const mainForm = container.querySelector('#main-form');
         const editRentalForm = container.querySelector('#edit-rental-form');
 
@@ -1013,63 +1089,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const mainView = container.querySelector("#main-view");
         if(mainView) mainView.style.display = "block";
 
-        let currentModalType = '';
         let clientesData = {};
         let currentStatusUpdateId = null;
         let lancamentosAtuais = {};
         
-        const openGenericModal = (type) => {
-            currentModalType = type;
-            modalFields.innerHTML = '';
-            switch (type) {
-                case 'clientes':
-                    modalTitle.textContent = 'Cadastrar Nova Obra/Cliente';
-                    modalFields.innerHTML = `<div class="form-group"><label for="modalNomeCliente">Nome</label><input type="text" id="modalNomeCliente" required></div><div class="form-group"><label for="modalEndereco">Endereço</label><input type="text" id="modalEndereco" required></div><div class="form-group"><label for="modalCidade">Cidade</label><input type="text" id="modalCidade" required></div>`;
-                    break;
-                case 'fornecedores':
-                    modalTitle.textContent = 'Cadastrar Novo Fornecedor';
-                    modalFields.innerHTML = `<div class="form-group"><label for="modalNomeFornecedor">Nome</label><input type="text" id="modalNomeFornecedor" required></div>`;
-                    break;
-                case 'equipamentos':
-                    modalTitle.textContent = 'Cadastrar Novo Equipamento';
-                    modalFields.innerHTML = `<div class="form-group"><label for="modalNomeEquipamento">Nome</label><input type="text" id="modalNomeEquipamento" required></div>`;
-                    break;
-                case 'funcionarios':
-                    modalTitle.textContent = 'Cadastrar Novo Funcionário';
-                    modalFields.innerHTML = `<div class="form-group"><label for="modalNomeFuncionario">Nome</label><input type="text" id="modalNomeFuncionario" required></div>`;
-                    break;
-            }
-            genericModal.style.display = 'block';
-        };
-
-        const closeModal = () => {
-            if(genericModal) genericModal.style.display = 'none';
+        const closeRentalModals = () => {
             if(statusModal) statusModal.style.display = 'none';
             if(editRentalModal) editRentalModal.style.display = 'none';
-            if (modalForm) modalForm.reset();
             if (editRentalForm) editRentalForm.reset();
         };
         
-        addTrackedListener(document.getElementById('genericModalClose'), 'click', closeModal);
-        addTrackedListener(document.getElementById('statusModal').querySelector('#btnStatusCancelar'), 'click', closeModal);
-        addTrackedListener(container.querySelector('#edit-rental-modal-close'), 'click', closeModal);
+        addTrackedListener(document.getElementById('statusModal').querySelector('#btnStatusCancelar'), 'click', closeRentalModals);
+        addTrackedListener(container.querySelector('#edit-rental-modal-close'), 'click', closeRentalModals);
 
         container.querySelectorAll('#btnNovaObra, #btnFastAddCliente').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('clientes')));
         container.querySelectorAll('#btnNovoFornecedor, #btnFastAddFornecedor').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('fornecedores')));
         container.querySelectorAll('#btnNovoEquipamento, #btnFastAddEquipamento').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('equipamentos')));
-        container.querySelectorAll('#btnNovoFuncionario, #btnFastAddFuncionario').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('funcionarios')));
+        container.querySelectorAll('#btnFastAddFuncionario').forEach(btn => addTrackedListener(btn, 'click', () => openGenericModal('funcionarios')));
 
-        addTrackedListener(modalForm, 'submit', (e) => {
-            e.preventDefault();
-            let data = {};
-            switch (currentModalType) {
-                case 'clientes': data = { nome: document.getElementById('modalNomeCliente').value, endereco: document.getElementById('modalEndereco').value, cidade: document.getElementById('modalCidade').value }; break;
-                case 'fornecedores': data = { nome: document.getElementById('modalNomeFornecedor').value }; break;
-                case 'equipamentos': data = { nome: document.getElementById('modalNomeEquipamento').value }; break;
-                case 'funcionarios': data = { nome: document.getElementById('modalNomeFuncionario').value }; break;
-            }
-            database.ref(currentModalType).push(data).then(() => closeModal()).catch(error => console.error("Erro ao salvar: ", error));
-        });
 
         const populateSelect = (selectElement, data, placeholder) => {
             if (!selectElement) return;
@@ -1160,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 reagendamentoAutomatico: editSelectFrequencia.value !== 'unico'
             };
 
-            database.ref('lancamentos/' + id).update(data).then(() => closeModal()).catch(err => console.error("Erro ao atualizar:", err));
+            database.ref('lancamentos/' + id).update(data).then(() => closeRentalModals()).catch(err => console.error("Erro ao atualizar:", err));
         });
 
         const getDueDateStatus = (proximoVencimentoStr) => {
@@ -1253,8 +1290,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        addTrackedListener(document.getElementById('btnStatusParcial'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Parcial' }).then(closeModal); } });
-        addTrackedListener(document.getElementById('btnStatusCompleto'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Devolvido' }).then(closeModal); } });
+        addTrackedListener(document.getElementById('btnStatusParcial'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Parcial' }).then(closeRentalModals); } });
+        addTrackedListener(document.getElementById('btnStatusCompleto'), 'click', () => { if (currentStatusUpdateId) { database.ref('lancamentos/' + currentStatusUpdateId).update({ status: 'Devolvido' }).then(closeRentalModals); } });
         
         return cleanup;
     }
@@ -1281,14 +1318,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const modalImageContent = document.getElementById('modal-image-content');
         
         const filterName = container.querySelector('#filter-stock-name');
-        const filterCode = container.querySelector('#filter-stock-code');
+        const filterLocation = container.querySelector('#filter-stock-location');
         const filterCategory = container.querySelector('#filter-stock-category');
 
         const openItemModal = (item = {}) => {
             itemForm.reset();
             itemForm.querySelector('#stock-item-id').value = item.id || '';
             itemForm.querySelector('#stock-item-name').value = item.nome || '';
-            itemForm.querySelector('#stock-item-code').value = item.codigo || '';
+            itemForm.querySelector('#stock-item-location').value = item.local || 'Escritorio';
             itemForm.querySelector('#stock-item-category').value = item.categoria || '';
             itemForm.querySelector('#stock-item-quantity').value = item.quantidade ?? '';
             itemForm.querySelector('#stock-item-unit').value = item.unidade || 'un';
@@ -1321,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = itemForm.querySelector('#stock-item-id').value;
             const data = {
                 nome: itemForm.querySelector('#stock-item-name').value,
-                codigo: itemForm.querySelector('#stock-item-code').value,
+                local: itemForm.querySelector('#stock-item-location').value,
                 categoria: itemForm.querySelector('#stock-item-category').value,
                 unidade: itemForm.querySelector('#stock-item-unit').value,
                 imageUrl: itemForm.querySelector('#stock-item-image').value,
@@ -1363,15 +1400,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const renderStockTable = () => {
             if(!tableBody) return;
             const nameQuery = filterName.value.toLowerCase();
-            const codeQuery = filterCode.value.toLowerCase();
+            const locationQuery = filterLocation.value;
             const categoryQuery = filterCategory.value.toLowerCase();
             tableBody.innerHTML = '';
 
             Object.entries(stockItemsData).filter(([_, item]) => {
                 const nameMatch = (item.nome || '').toLowerCase().includes(nameQuery);
-                const codeMatch = (item.codigo || '').toLowerCase().includes(codeQuery);
+                const locationMatch = (locationQuery === 'all' || item.local === locationQuery);
                 const categoryMatch = (item.categoria || '').toLowerCase().includes(categoryQuery);
-                return nameMatch && codeMatch && categoryMatch;
+                return nameMatch && locationMatch && categoryMatch;
             }).sort(([, itemA], [, itemB]) => {
                 return (itemA.nome || '').localeCompare(itemB.nome || '');
             }).forEach(([id, item]) => {
@@ -1379,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.className = item.quantidade <= 5 ? 'low-stock' : '';
                 row.innerHTML = `
                     <td data-label="Item">${item.nome}</td>
-                    <td data-label="Código">${item.codigo || ''}</td>
+                    <td data-label="Local">${item.local || ''}</td>
                     <td data-label="Categoria">${item.categoria || ''}</td>
                     <td data-label="Qtd. Atual">${item.quantidade}</td>
                     <td data-label="Unidade">${item.unidade}</td>
@@ -1404,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderStockTable();
         });
         
-        [filterName, filterCode, filterCategory].forEach(el => addTrackedListener(el, 'input', renderStockTable));
+        [filterName, filterLocation, filterCategory].forEach(el => addTrackedListener(el, 'input', renderStockTable));
 
         addTrackedListener(tableBody, 'click', (e) => {
             const editBtn = e.target.closest('.btn-edit-stock-item');
@@ -1480,7 +1517,6 @@ document.addEventListener('DOMContentLoaded', function () {
                  modal.querySelector('#car-next-oil-date').value = data.proximaTrocaOleoData || '';
                  modal.querySelector('#car-next-maintenance-km').value = data.proximaManutencaoKM || '';
                  modal.querySelector('#car-next-maintenance-date').value = data.proximaManutencaoData || '';
-                 // Preenche a data da manutenção com a data atual
                  modal.querySelector('#car-maintenance-date').value = new Date().toISOString().split('T')[0];
             }
             modal.style.display = 'block';
