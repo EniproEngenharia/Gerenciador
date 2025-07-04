@@ -170,7 +170,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selectedUserId === 'ADMIN') {
                 if (password === 'admin') { // Senha hardcoded para o ADMIN Principal
-                    // O ADMIN Principal tem todas as permissões
                     user = { 
                         nome: 'ADMIN', 
                         permissions: { 
@@ -209,11 +208,9 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const permissions = adminUser.permissions || {};
         
-        // Controla a visibilidade das seções de gerenciamento
         document.getElementById('admin-management-section').style.display = permissions.canManageAdmins ? 'block' : 'none';
         document.getElementById('employee-management-section').style.display = permissions.canManageEmployees ? 'block' : 'none';
 
-        // Controla a visibilidade dos botões de sistema com base nas permissões granulares
         document.querySelector('button[data-system="rental"]').style.display = permissions.canViewRental ? 'inline-flex' : 'none';
         document.querySelector('button[data-system="stock"]').style.display = permissions.canViewStock ? 'inline-flex' : 'none';
         document.querySelector('button[data-system="car"]').style.display = permissions.canViewCar ? 'inline-flex' : 'none';
@@ -298,7 +295,6 @@ document.addEventListener('DOMContentLoaded', function () {
         form.reset();
         document.getElementById('permission-admin-id').value = adminId || '';
         
-        // Objeto de permissões atualizado com granularidade
         const allPermissions = {
             canManageAdmins: "Gerenciar Admins",
             canManageEmployees: "Gerenciar Funcionários",
@@ -401,6 +397,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderEmployeeManagementTable() {
         const tableBody = document.getElementById('admin-employee-table-body');
         if (!tableBody) return;
+        
+        const loggedInAdminId = sessionStorage.getItem('loggedInAdminId');
+        
         tableBody.innerHTML = '';
         if (funcionariosData) {
             Object.keys(funcionariosData).sort((a, b) => {
@@ -410,16 +409,26 @@ document.addEventListener('DOMContentLoaded', function () {
             }).forEach(id => {
                 const funcionario = funcionariosData[id];
                 const row = tableBody.insertRow();
-                row.innerHTML = `
-                    <td data-label="Funcionário">${funcionario.nome}</td>
-                    <td data-label="Ações">
+                
+                let actionsHtml = '';
+                // Botão de editar permissões só aparece para o ADMIN principal
+                if (loggedInAdminId === 'ADMIN') {
+                    actionsHtml += `
                         <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
                             <i data-lucide="key-round"></i>
                         </button>
-                        <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
-                            <i data-lucide="bell-plus"></i>
-                        </button>
-                    </td>
+                    `;
+                }
+                // Botão de lembrete aparece para todos os admins
+                actionsHtml += `
+                    <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
+                        <i data-lucide="bell-plus"></i>
+                    </button>
+                `;
+
+                row.innerHTML = `
+                    <td data-label="Funcionário">${funcionario.nome}</td>
+                    <td data-label="Ações">${actionsHtml}</td>
                 `;
             });
         }
