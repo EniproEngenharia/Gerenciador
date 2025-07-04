@@ -71,7 +71,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function showAdminSubView(subViewName, systemKey = null) {
+    // ALTERADO: Adicionado o parâmetro 'returnTo' para saber para onde voltar.
+    function showAdminSubView(subViewName, systemKey = null, returnTo = 'adminDashboard') {
         activeSystemCleanup(); 
 
         if (subViewName === 'main') {
@@ -82,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('#admin-main-container .system-button').forEach(button => {
                 button.addEventListener('click', () => {
                     const system = button.dataset.system;
-                    showAdminSubView('system', system);
+                    // ALTERADO: A chamada a partir do dashboard do admin sempre voltará para o admin.
+                    showAdminSubView('system', system, 'adminDashboard');
                 });
             });
         } else if (subViewName === 'system' && systemKey) {
@@ -98,11 +100,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'car': activeSystemCleanup = runCarControlLogic(); break;
                     case 'tool': activeSystemCleanup = runToolControlLogic(); break;
                 }
-                 const backToAdminBtn = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
-                 if(backToAdminBtn) {
-                     backToAdminBtn.addEventListener('click', () => {
-                        showTopLevelView('admin-app-wrapper');
-                        showAdminSubView('main');
+
+                 // NOVO: Lógica condicional para o botão voltar
+                 const backButton = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
+                 if(backButton) {
+                     backButton.addEventListener('click', () => {
+                        if (returnTo === 'employeeDashboard') {
+                            // Se veio do funcionário, volta para a área do funcionário
+                            showTopLevelView('employee-area-wrapper');
+                            employeeLoginView.style.display = 'none';
+                            employeeDashboardView.style.display = 'block';
+                        } else {
+                            // Comportamento padrão: volta para o dashboard do admin
+                            showTopLevelView('admin-app-wrapper');
+                            showAdminSubView('main');
+                        }
                      });
                  }
             } else {
@@ -118,11 +130,15 @@ document.addEventListener('DOMContentLoaded', function () {
         showTopLevelView('service-selection-view');
         // Reset admin login
         adminLoginView.style.display = 'none';
-        document.getElementById('admin-login-form').reset();
+        if(document.getElementById('admin-login-form')) {
+            document.getElementById('admin-login-form').reset();
+        }
         // Reset employee login
         employeeLoginView.style.display = 'block';
         employeeDashboardView.style.display = 'none';
-        document.getElementById('employee-login-form').reset();
+        if(document.getElementById('employee-login-form')) {
+            document.getElementById('employee-login-form').reset();
+        }
     };
 
     btnGoToAdmin.addEventListener('click', () => {
@@ -173,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
         systemButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const systemKey = button.dataset.system;
-                showAdminSubView('system', systemKey);
+                showAdminSubView('system', systemKey, 'adminDashboard'); // ALTERADO: Origem explícita
             });
         });
 
@@ -737,7 +753,8 @@ document.addEventListener('DOMContentLoaded', function () {
             accessStockBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 showTopLevelView('admin-app-wrapper');
-                showAdminSubView('system', 'stock');
+                // ALTERADO: Passa o novo parâmetro para indicar que a origem é o dashboard do funcionário
+                showAdminSubView('system', 'stock', 'employeeDashboard');
             });
         }
         
