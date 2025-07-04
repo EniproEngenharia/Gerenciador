@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let user = null;
 
             if (selectedUserId === 'ADMIN') {
-                if (password === 'admin') { // Senha hardcoded para o ADMIN Principal
+                if (password === 'admin') {
                     user = { 
                         nome: 'ADMIN', 
                         permissions: { 
@@ -411,7 +411,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const row = tableBody.insertRow();
                 
                 let actionsHtml = '';
-                // Botão de editar permissões só aparece para o ADMIN principal
                 if (loggedInAdminId === 'ADMIN') {
                     actionsHtml += `
                         <button class="action-button secondary btn-edit-permissions" data-id="${id}" title="Editar Acessos">
@@ -419,7 +418,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
                     `;
                 }
-                // Botão de lembrete aparece para todos os admins
                 actionsHtml += `
                     <button class="action-button btn-add-reminder" data-id="${id}" data-name="${funcionario.nome}" title="Adicionar Lembrete">
                         <i data-lucide="bell-plus"></i>
@@ -1441,11 +1439,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const carItemModal = container.querySelector('#car-item-modal');
-        const updateKmModal = document.getElementById('car-update-km-modal');
         const maintenanceModal = container.querySelector('#car-maintenance-modal');
+        const carHistoryModal = container.querySelector('#car-history-modal');
         
         const carItemForm = container.querySelector('#car-item-form');
-        const updateKmForm = document.getElementById('car-update-km-form');
         const maintenanceForm = container.querySelector('#car-maintenance-form');
 
         const carCardContainer = container.querySelector('#car-card-container');
@@ -1475,9 +1472,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 driverSelect.value = data.condutor || '';
                 modal.querySelector('#car-item-license').value = data.licenciamento || '';
                 modal.querySelector('#car-item-renavan').value = data.renavan || '';
-            } else if (modalId === 'car-update-km-modal') {
-                 modal.querySelector('#car-update-km-modal-title').textContent = `Atualizar KM de ${data.nome}`;
-                 modal.querySelector('#car-update-km-id').value = data.id || '';
             } else if (modalId === 'car-maintenance-modal') {
                  modal.querySelector('#car-maintenance-modal-title').textContent = `Registrar Manutenção: ${data.nome}`;
                  modal.querySelector('#car-maintenance-id').value = data.id || '';
@@ -1486,19 +1480,48 @@ document.addEventListener('DOMContentLoaded', function () {
                  modal.querySelector('#car-next-oil-date').value = data.proximaTrocaOleoData || '';
                  modal.querySelector('#car-next-maintenance-km').value = data.proximaManutencaoKM || '';
                  modal.querySelector('#car-next-maintenance-date').value = data.proximaManutencaoData || '';
+                 // Preenche a data da manutenção com a data atual
+                 modal.querySelector('#car-maintenance-date').value = new Date().toISOString().split('T')[0];
             }
             modal.style.display = 'block';
         };
 
+        const openCarHistoryModal = (car) => {
+            if (!car) return;
+            const carHistoryModalTitle = carHistoryModal.querySelector('#car-history-modal-title');
+            const carHistoryLog = carHistoryModal.querySelector('#car-history-log');
+
+            carHistoryModalTitle.textContent = `Histórico de: ${car.nome} (${car.placa})`;
+            carHistoryLog.innerHTML = '<p>A carregar histórico...</p>';
+
+            const history = car.historicoManutencao || {};
+            const historyEntries = Object.values(history).sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            if (historyEntries.length > 0) {
+                carHistoryLog.innerHTML = historyEntries.map(entry => `
+                    <div class="vencimento-item">
+                        <div class="vencimento-item-info">
+                            ${entry.tipo}
+                            <span>Data: ${new Date(entry.data).toLocaleDateString('pt-BR')} | KM: ${(entry.km || 0).toLocaleString('pt-BR')}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                carHistoryLog.innerHTML = '<p>Nenhum registo de manutenção encontrado para este veículo.</p>';
+            }
+            carHistoryModal.style.display = 'block';
+        };
+
         const closeCarModals = () => {
             if(carItemModal) carItemModal.style.display = 'none';
-            if(updateKmModal) updateKmModal.style.display = 'none';
             if(maintenanceModal) maintenanceModal.style.display = 'none';
+            if(carHistoryModal) carHistoryModal.style.display = 'none';
         };
 
         addTrackedListener(container.querySelector('#btn-add-car'), 'click', () => openCarModal(carItemModal));
         addTrackedListener(container.querySelector('#car-item-modal-close'), 'click', closeCarModals);
         addTrackedListener(container.querySelector('#car-maintenance-modal-close'), 'click', closeCarModals);
+        addTrackedListener(container.querySelector('#car-history-modal-close'), 'click', closeCarModals);
 
         addTrackedListener(carItemForm, 'submit', (e) => {
             e.preventDefault();
@@ -1515,17 +1538,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const promise = id ? carRef.child(id).update(data) : carRef.push(data);
             promise.then(closeCarModals).catch(err => console.error("Erro:", err));
         });
-
-        addTrackedListener(updateKmForm, 'submit', (e) => {
-             e.preventDefault();
-             const id = updateKmForm.querySelector('#car-update-km-id').value;
-             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
-             if (id && newKm >= (carItemsData[id].kmAtual || 0)) {
-                 carRef.child(id).update({ kmAtual: newKm }).then(closeCarModals);
-             } else {
-                 alert('A nova quilometragem deve ser maior ou igual à atual.');
-             }
-        });
         
         addTrackedListener(maintenanceForm, 'submit', (e) => {
             e.preventDefault();
@@ -1534,22 +1546,24 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!item) return;
 
             const serviceKm = parseInt(maintenanceForm.querySelector('#car-maintenance-km').value);
+            const serviceDate = maintenanceForm.querySelector('#car-maintenance-date').value;
+
             const updates = {
-                kmAtual: serviceKm,
+                kmAtual: serviceKm > (item.kmAtual || 0) ? serviceKm : item.kmAtual,
                 proximaTrocaOleoKM: parseInt(maintenanceForm.querySelector('#car-next-oil-km').value) || null,
                 proximaTrocaOleoData: maintenanceForm.querySelector('#car-next-oil-date').value || null,
                 proximaManutencaoKM: parseInt(maintenanceForm.querySelector('#car-next-maintenance-km').value) || null,
                 proximaManutencaoData: maintenanceForm.querySelector('#car-next-maintenance-date').value || null
             };
             
-            const historico = item.historicoManutencao || [];
-            historico.push({
-                data: new Date().toISOString().split('T')[0],
+            const historicoRef = database.ref(`veiculos/${id}/historicoManutencao`);
+            const newEntry = {
+                data: serviceDate,
                 km: serviceKm,
                 tipo: maintenanceForm.querySelector('#car-maintenance-type').value,
-            });
-            updates.historicoManutencao = historico;
-
+            };
+            
+            historicoRef.push(newEntry);
             carRef.child(id).update(updates).then(closeCarModals);
         });
 
@@ -1568,7 +1582,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const kmAlertThreshold = 1000;
                 const dateAlertThreshold = 30 * 24 * 60 * 60 * 1000;
 
-                if (car.proximaTrocaOleoKM) {
+                if (car.proximaTrocaOleoKM && car.kmAtual) {
                     if (car.kmAtual >= car.proximaTrocaOleoKM) {
                         indicators.push('<div class="indicator-bar indicator-oil-danger" title="Troca de óleo vencida"></div>');
                     } else if (car.kmAtual >= car.proximaTrocaOleoKM - kmAlertThreshold) {
@@ -1606,8 +1620,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                         <div class="car-card-footer">
                             <button class="btn-status btn-edit-car" data-id="${id}" title="Editar"><i data-lucide="edit"></i></button>
-                            <button class="btn-status btn-update-km" data-id="${id}" title="Atualizar KM"><i data-lucide="gauge-circle"></i></button>
                             <button class="btn-status btn-add-maintenance" data-id="${id}" title="Registrar Manutenção"><i data-lucide="wrench"></i></button>
+                            <button class="btn-status btn-view-history" data-id="${id}" title="Ver Histórico"><i data-lucide="history"></i></button>
                         </div>
                     </div>`;
                 carCardContainer.appendChild(card);
@@ -1629,9 +1643,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const button = e.target.closest('.btn-status');
             if(!button) return;
             const id = button.dataset.id;
-            if (button.classList.contains('btn-edit-car')) openCarModal(carItemModal, carItemsData[id]);
-            if (button.classList.contains('btn-update-km')) openCarModal(updateKmModal, carItemsData[id]);
-            if (button.classList.contains('btn-add-maintenance')) openCarModal(maintenanceModal, carItemsData[id]);
+            const carData = carItemsData[id];
+
+            if (button.classList.contains('btn-edit-car')) openCarModal(carItemModal, carData);
+            if (button.classList.contains('btn-add-maintenance')) openCarModal(maintenanceModal, carData);
+            if (button.classList.contains('btn-view-history')) openCarHistoryModal(carData);
         });
         
         return cleanup;
