@@ -359,6 +359,13 @@ header p, .detail-header p {
     transition: background-color 0.3s, border-color 0.3s;
 }
 
+.management-sections-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
 h2 {
     font-size: 1.75rem;
     font-weight: 600;
@@ -792,6 +799,12 @@ tbody tr.discarded-row:hover {
 @media (min-width: 769px) {
     .form-grid { grid-template-columns: repeat(3, 1fr); }
     .form-group-obs { grid-column: span 2; }
+}
+
+@media (max-width: 1200px) {
+    .management-sections-wrapper {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 900px) {

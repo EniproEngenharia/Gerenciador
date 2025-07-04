@@ -48,15 +48,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Estado da Aplicação
     let funcionariosData = {};
+    let adminsData = {};
     let activeSystemCleanup = () => {};
 
     // --- CARREGAMENTO DE DADOS GLOBAIS ---
-    function loadEmployeeData() {
-        const ref = database.ref('funcionarios');
-        ref.on('value', snapshot => {
+    function loadInitialData() {
+        database.ref('funcionarios').on('value', snapshot => {
             funcionariosData = snapshot.val() || {};
             renderEmployeeManagementTable();
             populateEmployeeLoginDropdown();
+        });
+        database.ref('admins').on('value', snapshot => {
+            adminsData = snapshot.val() || {};
+            populateAdminLoginDropdown();
+            renderAdminManagementTable();
         });
     }
 
@@ -71,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ALTERADO: Adicionado o parâmetro 'returnTo' para saber para onde voltar.
     function showAdminSubView(subViewName, systemKey = null, returnTo = 'adminDashboard') {
         activeSystemCleanup(); 
 
@@ -79,11 +83,9 @@ document.addEventListener('DOMContentLoaded', function () {
             adminMainContainer.style.display = 'block';
             adminSystemViewContainer.style.display = 'none';
             adminSystemViewContainer.innerHTML = '';
-             // Re-attach event listeners for system buttons on the main admin dashboard
             document.querySelectorAll('#admin-main-container .system-button').forEach(button => {
                 button.addEventListener('click', () => {
                     const system = button.dataset.system;
-                    // ALTERADO: A chamada a partir do dashboard do admin sempre voltará para o admin.
                     showAdminSubView('system', system, 'adminDashboard');
                 });
             });
@@ -101,17 +103,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'tool': activeSystemCleanup = runToolControlLogic(); break;
                 }
 
-                 // NOVO: Lógica condicional para o botão voltar
                  const backButton = adminSystemViewContainer.querySelector('.back-to-admin-dashboard-button');
                  if(backButton) {
                      backButton.addEventListener('click', () => {
                         if (returnTo === 'employeeDashboard') {
-                            // Se veio do funcionário, volta para a área do funcionário
                             showTopLevelView('employee-area-wrapper');
                             employeeLoginView.style.display = 'none';
                             employeeDashboardView.style.display = 'block';
                         } else {
-                            // Comportamento padrão: volta para o dashboard do admin
                             showTopLevelView('admin-app-wrapper');
                             showAdminSubView('main');
                         }
@@ -126,14 +125,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- NAVEGAÇÃO PRINCIPAL E SESSÃO ---
     const goHome = () => {
+        sessionStorage.removeItem('loggedInAdminId');
+        sessionStorage.removeItem('loggedInEmployeeId');
         showAdminSubView('main');
         showTopLevelView('service-selection-view');
-        // Reset admin login
-        adminLoginView.style.display = 'none';
+        adminLoginView.style.display = 'block';
         if(document.getElementById('admin-login-form')) {
             document.getElementById('admin-login-form').reset();
         }
-        // Reset employee login
         employeeLoginView.style.display = 'block';
         employeeDashboardView.style.display = 'none';
         if(document.getElementById('employee-login-form')) {
@@ -153,56 +152,237 @@ document.addEventListener('DOMContentLoaded', function () {
 
     backToServicesButtons.forEach(button => button.addEventListener('click', goHome));
     
-    // Explicitly handle the admin dashboard logout
     adminAppWrapper.querySelector('.back-to-services-button').addEventListener('click', goHome);
 
 
     // --- ÁREA DO ADMIN ---
     function initializeAdminLogin() {
         const adminLoginForm = document.getElementById('admin-login-form');
+        const adminUserSelect = document.getElementById('admin-user-select');
         const adminPasswordInput = document.getElementById('admin-password-input');
         const adminLoginError = document.getElementById('admin-login-error');
         
         adminLoginForm.onsubmit = function(e) {
             e.preventDefault();
-            // IMPORTANT: In a real application, this password should not be hardcoded.
-            // It should be fetched from a secure source or use a proper authentication system.
-            const ADMIN_PASSWORD = "admin";
-            
-            if (adminPasswordInput.value === ADMIN_PASSWORD) {
-                adminLoginError.textContent = '';
-                showTopLevelView('admin-app-wrapper');
-                initializeAdminApp();
+            const selectedUserId = adminUserSelect.value;
+            const password = adminPasswordInput.value;
+            let user = null;
+
+            if (selectedUserId === 'ADMIN') {
+                if (password === 'admin') { // Senha hardcoded para o ADMIN Principal
+                    // O ADMIN Principal tem todas as permissões
+                    user = { 
+                        nome: 'ADMIN', 
+                        permissions: { 
+                            canManageAdmins: true, 
+                            canManageEmployees: true, 
+                            canViewRental: true,
+                            canViewStock: true,
+                            canViewCar: true,
+                            canViewTool: true,
+                            canViewApproval: true
+                        } 
+                    };
+                }
             } else {
-                adminLoginError.textContent = 'Senha incorreta.';
+                const adminUser = adminsData[selectedUserId];
+                if (adminUser && adminUser.senha === password) {
+                    user = adminUser;
+                }
+            }
+            
+            if (user) {
+                adminLoginError.textContent = '';
+                sessionStorage.setItem('loggedInAdminId', selectedUserId);
+                sessionStorage.setItem('loggedInAdminPermissions', JSON.stringify(user.permissions));
+                showTopLevelView('admin-app-wrapper');
+                initializeAdminApp(user);
+            } else {
+                adminLoginError.textContent = 'Usuário ou senha incorreta.';
                 adminPasswordInput.focus();
             }
         }
     }
 
-    function initializeAdminApp() {
+    function initializeAdminApp(adminUser) {
         showAdminSubView('main');
-        renderEmployeeManagementTable();
+        
+        const permissions = adminUser.permissions || {};
+        
+        // Controla a visibilidade das seções de gerenciamento
+        document.getElementById('admin-management-section').style.display = permissions.canManageAdmins ? 'block' : 'none';
+        document.getElementById('employee-management-section').style.display = permissions.canManageEmployees ? 'block' : 'none';
 
-        // Adiciona os event listeners para os botões de sistema
+        // Controla a visibilidade dos botões de sistema com base nas permissões granulares
+        document.querySelector('button[data-system="rental"]').style.display = permissions.canViewRental ? 'inline-flex' : 'none';
+        document.querySelector('button[data-system="stock"]').style.display = permissions.canViewStock ? 'inline-flex' : 'none';
+        document.querySelector('button[data-system="car"]').style.display = permissions.canViewCar ? 'inline-flex' : 'none';
+        document.querySelector('button[data-system="tool"]').style.display = permissions.canViewTool ? 'inline-flex' : 'none';
+        document.getElementById('btn-produtos-aprovacao').style.display = permissions.canViewApproval ? 'inline-flex' : 'none';
+
+
+        document.getElementById('admin-dashboard-title').textContent = `Painel de ${adminUser.nome}`;
+        
+        renderEmployeeManagementTable();
+        renderAdminManagementTable();
+
         const systemButtons = document.querySelectorAll('#admin-main-container .system-button');
         systemButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const systemKey = button.dataset.system;
-                showAdminSubView('system', systemKey, 'adminDashboard'); // ALTERADO: Origem explícita
+                showAdminSubView('system', systemKey, 'adminDashboard');
             });
         });
 
-        // Event listener para o botão de Produtos para Aprovação
         const btnProdutosAprovacao = document.getElementById('btn-produtos-aprovacao');
         if (btnProdutosAprovacao) {
             btnProdutosAprovacao.addEventListener('click', () => {
-                // Abre o sistema de produtos em uma nova aba/janela
                 window.open('produtos.html', '_blank');
             });
         }
+        
+        document.getElementById('btn-add-admin').addEventListener('click', () => openAdminPermissionModal());
     }
     
+    function populateAdminLoginDropdown() {
+        const adminSelect = document.getElementById('admin-user-select');
+        if(!adminSelect) return;
+        const currentVal = adminSelect.value;
+        adminSelect.innerHTML = '<option value="ADMIN">ADMIN (Principal)</option>';
+        if (adminsData) {
+            Object.keys(adminsData).sort((a,b) => (adminsData[a].nome || '').localeCompare(adminsData[b].nome || '')).forEach(id => {
+                adminSelect.innerHTML += `<option value="${id}">${adminsData[id].nome}</option>`;
+            });
+        }
+        adminSelect.value = currentVal;
+    }
+
+    function renderAdminManagementTable() {
+        const tableBody = document.getElementById('admin-management-table-body');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        if (adminsData) {
+            Object.keys(adminsData).sort((a, b) => (adminsData[a].nome || '').localeCompare(adminsData[b].nome || '')).forEach(id => {
+                const admin = adminsData[id];
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td data-label="Admin">${admin.nome}</td>
+                    <td data-label="Ações">
+                        <button class="action-button secondary btn-edit-admin-permissions" data-id="${id}" title="Editar Acessos">
+                            <i data-lucide="key-round"></i>
+                        </button>
+                        <button class="action-button danger btn-delete-admin" data-id="${id}" title="Excluir Admin">
+                            <i data-lucide="trash-2"></i>
+                        </button>
+                    </td>
+                `;
+            });
+        }
+        lucide.createIcons();
+        
+        document.querySelectorAll('.btn-edit-admin-permissions').forEach(btn => {
+            btn.onclick = (e) => openAdminPermissionModal(e.currentTarget.dataset.id);
+        });
+        document.querySelectorAll('.btn-delete-admin').forEach(btn => {
+            btn.onclick = (e) => deleteAdmin(e.currentTarget.dataset.id);
+        });
+    }
+    
+    function openAdminPermissionModal(adminId = null) {
+        const modal = document.getElementById('admin-permission-modal');
+        const title = document.getElementById('admin-permission-modal-title');
+        const form = document.getElementById('admin-permission-form');
+        const checkboxesContainer = document.getElementById('admin-permissions-checkboxes');
+        const passwordInput = document.getElementById('permission-admin-password');
+        
+        form.reset();
+        document.getElementById('permission-admin-id').value = adminId || '';
+        
+        // Objeto de permissões atualizado com granularidade
+        const allPermissions = {
+            canManageAdmins: "Gerenciar Admins",
+            canManageEmployees: "Gerenciar Funcionários",
+            canViewRental: "Ver Gerenciador de Obras",
+            canViewStock: "Ver Controle de Estoque",
+            canViewCar: "Ver Controle de Carros",
+            canViewTool: "Ver Controle de Ferramentas",
+            canViewApproval: "Ver Produtos para Aprovação"
+        };
+
+        if (adminId) {
+            const admin = adminsData[adminId];
+            title.textContent = `Editar Admin: ${admin.nome}`;
+            document.getElementById('permission-admin-name').value = admin.nome;
+            passwordInput.placeholder = "Deixe em branco para não alterar";
+            
+            const currentPermissions = admin.permissions || {};
+            checkboxesContainer.innerHTML = Object.keys(allPermissions).map(key => `
+                <div class="form-group">
+                    <label style="flex-direction: row; align-items: center; display: flex; gap: 8px;">
+                        <input type="checkbox" id="admin-perm-${key}" name="${key}" ${currentPermissions[key] ? 'checked' : ''}>
+                        ${allPermissions[key]}
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            title.textContent = 'Criar Novo Admin';
+            passwordInput.placeholder = "Senha é obrigatória";
+            checkboxesContainer.innerHTML = Object.keys(allPermissions).map(key => `
+                <div class="form-group">
+                    <label style="flex-direction: row; align-items: center; display: flex; gap: 8px;">
+                        <input type="checkbox" id="admin-perm-${key}" name="${key}">
+                        ${allPermissions[key]}
+                    </label>
+                </div>
+            `).join('');
+        }
+        
+        modal.style.display = 'block';
+    }
+
+    document.getElementById('admin-permission-modal-close').onclick = () => {
+        document.getElementById('admin-permission-modal').style.display = 'none';
+    };
+
+    document.getElementById('admin-permission-form').onsubmit = function(e) {
+        e.preventDefault();
+        const adminId = document.getElementById('permission-admin-id').value;
+        const name = document.getElementById('permission-admin-name').value;
+        const password = document.getElementById('permission-admin-password').value;
+
+        if (!adminId && !password) {
+            alert('A senha é obrigatória para novos administradores.');
+            return;
+        }
+
+        const permissions = {};
+        document.querySelectorAll('#admin-permissions-checkboxes input').forEach(cb => {
+            permissions[cb.name] = cb.checked;
+        });
+
+        const adminData = { nome: name, permissions: permissions };
+        if (password) {
+            adminData.senha = password;
+        }
+
+        const ref = adminId ? database.ref('admins/' + adminId) : database.ref('admins').push();
+        ref.update(adminData).then(() => {
+            alert('Admin salvo com sucesso!');
+            document.getElementById('admin-permission-modal').style.display = 'none';
+        }).catch(err => {
+            console.error(err);
+            alert('Erro ao salvar admin.');
+        });
+    };
+    
+    function deleteAdmin(adminId) {
+        if (confirm(`Tem certeza que deseja excluir o admin ${adminsData[adminId].nome}?`)) {
+            database.ref('admins/' + adminId).remove()
+                .then(() => alert('Admin excluído com sucesso.'))
+                .catch(err => alert('Erro ao excluir admin.'));
+        }
+    }
+
     function populateEmployeeLoginDropdown() {
         const employeeSelect = document.getElementById('employee-select-login');
         if(!employeeSelect) return;
@@ -434,14 +614,13 @@ document.addEventListener('DOMContentLoaded', function () {
         updateKmModal.querySelector('#car-update-km-id').value = carId;
         updateKmForm.reset();
 
-        // Attach a one-time listener for the form submission
         updateKmForm.onsubmit = (e) => {
             e.preventDefault();
             const newKm = parseInt(updateKmForm.querySelector('#car-update-km-input').value);
             if (newKm >= (carData.kmAtual || 0)) {
                 database.ref(`veiculos/${carId}`).update({ kmAtual: newKm }).then(() => {
                     updateKmModal.style.display = 'none';
-                    renderEmployeeDashboard(sessionStorage.getItem('loggedInEmployeeId')); // Refresh dashboard
+                    renderEmployeeDashboard(sessionStorage.getItem('loggedInEmployeeId'));
                 });
             } else {
                 alert('A nova quilometragem deve ser maior ou igual à atual.');
@@ -451,7 +630,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateKmModal.style.display = 'block';
     }
     
-    // Global listener for the KM modal close button
     const carUpdateKmModal = document.getElementById('car-update-km-modal');
     const carUpdateKmModalClose = document.getElementById('car-update-km-modal-close');
     if(carUpdateKmModal && carUpdateKmModalClose) {
@@ -462,7 +640,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const employee = funcionariosData[employeeId];
         document.getElementById('employee-dashboard-title').textContent = `Bem-vindo(a), ${employee.nome}`;
         
-        // Render all sections
         renderReminders(employeeId);
         renderWeeklyEvents(employeeId);
         renderEmployeeCards(employeeId);
@@ -485,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function () {
             today.setHours(0, 0, 0, 0);
 
             const activeReminders = Object.entries(reminders).filter(([,r]) => {
-                if (!r.expiresAt) return true; // Never expires if date is not set
+                if (!r.expiresAt) return true;
                 const expiresDate = new Date(r.expiresAt + 'T03:00:00Z');
                 return expiresDate >= today;
             });
@@ -518,7 +695,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const permissions = funcionariosData[employeeId]?.permissions || {};
         const weeklyEvents = [];
 
-        // 1. Define the week range (Sunday to Saturday)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -530,7 +706,6 @@ document.addEventListener('DOMContentLoaded', function () {
         lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
         lastDayOfWeek.setHours(23, 59, 59, 999);
 
-        // 2. Fetch Rentals
         if (permissions.canViewRentals) {
             const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
             const rentalsData = rentalsSnapshot.val() || {};
@@ -552,7 +727,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // 3. Fetch Reminders with due dates
         const remindersRef = database.ref(`lembretes/${employeeId}`);
         const remindersSnapshot = await remindersRef.once('value');
         const reminders = remindersSnapshot.val() || {};
@@ -571,14 +745,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // 4. Sort and Render
         weeklyEvents.sort((a, b) => a.date - b.date);
 
-        container.innerHTML = ''; // Clear previous content
+        container.innerHTML = '';
         let eventsHtml = `<h2 style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;"><i data-lucide="calendar-days"></i> Eventos da Semana</h2>`;
         
         if (weeklyEvents.length > 0) {
-            eventsHtml += '<div class="events-list-container">'; // A container for the list
+            eventsHtml += '<div class="events-list-container">';
             
             weeklyEvents.forEach(event => {
                 eventsHtml += `
@@ -598,7 +771,6 @@ document.addEventListener('DOMContentLoaded', function () {
         lucide.createIcons();
     }
 
-    // --- CÁLCULOS AUXILIARES ---
     function calcularProximoVencimento(dataInicioStr, frequencia, reagendamentoAutomatico) {
         if (!dataInicioStr || !frequencia || !reagendamentoAutomatico || frequencia === 'unico') return dataInicioStr || null;
         const hoje = new Date();
@@ -618,7 +790,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('employee-cards-container');
         if (!container) return;
         
-        container.innerHTML = ''; // Clear previous cards
+        container.innerHTML = '';
         const permissions = employee.permissions || {};
         let finalHtml = '';
         let hasContent = false;
@@ -635,7 +807,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return 'indicator-license-ok';
         };
 
-        // 1. Obras (now uses allEvents data)
         if (permissions.canViewRentals) {
             const rentalsSnapshot = await database.ref('lancamentos').orderByChild('funcionarioId').equalTo(employeeId).once('value');
             const rentalsData = rentalsSnapshot.val() || {};
@@ -665,7 +836,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 2. Veículos
         if (permissions.canViewCars) {
             const carsSnapshot = await database.ref('veiculos').orderByChild('condutor').equalTo(employee.nome).once('value');
             const carsData = carsSnapshot.val() || {};
@@ -695,7 +865,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 3. Ferramentas
         if (permissions.canViewTools) {
             const toolsSnapshot = await database.ref('ferramentas').orderByChild('responsavel').equalTo(employee.nome).once('value');
             const toolsData = toolsSnapshot.val() || {};
@@ -722,7 +891,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         
-        // 4. Estoque
         if (permissions.canViewStock || permissions.canManageStock) {
             hasContent = true;
             const buttonHtml = permissions.canManageStock 
@@ -747,13 +915,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         lucide.createIcons();
         
-        // Add event listeners again after rendering
         const accessStockBtn = document.getElementById('employee-access-stock-btn');
         if(accessStockBtn) {
             accessStockBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 showTopLevelView('admin-app-wrapper');
-                // ALTERADO: Passa o novo parâmetro para indicar que a origem é o dashboard do funcionário
                 showAdminSubView('system', 'stock', 'employeeDashboard');
             });
         }
@@ -771,7 +937,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- LÓGICA INTEGRADA DOS SISTEMAS ---
     function setupEventListeners() {
         const listeners = [];
         const firebaseRefs = [];
@@ -799,7 +964,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- INICIALIZAÇÃO ---
     showTopLevelView('service-selection-view');
-    loadEmployeeData();
+    loadInitialData();
     lucide.createIcons();
 
 
@@ -814,19 +979,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const { addTrackedListener, trackFirebaseRef, cleanup } = setupEventListeners();
         const container = adminSystemViewContainer;
         
-        // Modais
         const genericModal = document.getElementById('genericModal');
         const statusModal = document.getElementById('statusModal');
         const editRentalModal = container.querySelector('#edit-rental-modal');
 
-        // Formulários e Campos
         const modalTitle = document.getElementById('modalTitle');
         const modalFields = document.getElementById('modalFields');
         const modalForm = document.getElementById('modalForm');
         const mainForm = container.querySelector('#main-form');
         const editRentalForm = container.querySelector('#edit-rental-form');
 
-        // Seletores do formulário principal
         const selectCliente = container.querySelector('#selectCliente');
         const inputEndereco = container.querySelector('#inputEndereco');
         const inputCidade = container.querySelector('#inputCidade');
@@ -834,7 +996,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectEquipamento = container.querySelector('#selectEquipamento');
         const selectFuncionario = container.querySelector('#selectFuncionario');
         
-        // Tabela e Filtros
         const dataTableBody = container.querySelector('#dataTableBody');
         const filterCliente = container.querySelector('#filterCliente');
         const filterEquipamento = container.querySelector('#filterEquipamento');
@@ -925,13 +1086,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 const allData = results.reduce((acc, {key, data}) => ({...acc, [key]: data }), {});
                 clientesData = allData.clientes;
 
-                // Formulário principal
                 populateSelect(selectCliente, allData.clientes, 'Selecione uma obra');
                 populateSelect(selectFornecedor, allData.fornecedores, 'Selecione um fornecedor');
                 populateSelect(selectEquipamento, allData.equipamentos, 'Selecione um equipamento');
                 populateSelect(selectFuncionario, allData.funcionarios, 'Selecione um funcionário');
                 
-                // Formulário de edição
                 populateSelect(container.querySelector('#edit-selectCliente'), allData.clientes, 'Selecione uma obra');
                 populateSelect(container.querySelector('#edit-selectFornecedor'), allData.fornecedores, 'Selecione um fornecedor');
                 populateSelect(container.querySelector('#edit-selectEquipamento'), allData.equipamentos, 'Selecione um equipamento');
@@ -1065,12 +1224,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const rentalId = editButton.dataset.id;
                 const item = lancamentosAtuais[rentalId];
                 if(item) {
-                    // Populate and show the edit modal
                     container.querySelector('#edit-rental-id').value = rentalId;
                     container.querySelector('#edit-selectCliente').value = item.clienteId;
-                    // Trigger change to update address/city
                     container.querySelector('#edit-selectCliente').dispatchEvent(new Event('change'));
-                    setTimeout(() => { // ensure address/city are populated after change event
+                    setTimeout(() => {
                         container.querySelector('#edit-inputEndereco').value = clientesData[item.clienteId]?.endereco || '';
                         container.querySelector('#edit-inputCidade').value = clientesData[item.clienteId]?.cidade || '';
                     }, 100);
@@ -1614,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'Descartada': statusColorClass = 'status-dot-red'; break;
                 }
 
-                row.className = ''; // Reset class
+                row.className = '';
                 if(tool.status === 'Em Manutenção') row.className = 'maintenance-due';
                 if(tool.status === 'Descartada') row.className = 'discarded-row';
 

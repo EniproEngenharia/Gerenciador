@@ -38,11 +38,17 @@
             <header>
                 <button class="back-to-services-button"><i data-lucide="arrow-left"></i></button>
                 <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
-                <div class="header-text"><h1>Área do Administrador</h1><p>Insira a senha para aceder ao painel.</p></div>
+                <div class="header-text"><h1>Área do Administrador</h1><p>Insira suas credenciais para aceder ao painel.</p></div>
             </header>
             <div class="entry-form-container" style="max-width: 500px; margin-left: auto; margin-right: auto;">
                 <form id="admin-login-form">
                     <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label for="admin-user-select">Usuário</label>
+                            <select id="admin-user-select" required>
+                                <option value="ADMIN">ADMIN (Principal)</option>
+                            </select>
+                        </div>
                         <div class="form-group"><label for="admin-password-input">Senha</label><input type="password" id="admin-password-input" required></div>
                     </div>
                     <button type="submit" class="btn-submit">Aceder</button>
@@ -60,13 +66,13 @@
                     <button class="back-to-services-button"><i data-lucide="log-out"></i></button>
                     <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Enipro" class="logo" onerror="this.onerror=null;this.src='https://placehold.co/150x50/ffffff/000000?text=Enipro';">
                     <div class="header-text">
-                        <h1>Painel do Administrador</h1>
-                        <p>Gerencie os sistemas e os acessos dos funcionários.</p>
+                        <h1 id="admin-dashboard-title">Painel do Administrador</h1>
+                        <p>Gerencie os sistemas e os acessos.</p>
                     </div>
                 </header>
 
                 <h2 style="text-align: center; margin-bottom: 1.5rem;">Sistemas</h2>
-                <section class="actions-container">
+                <section class="actions-container" id="admin-systems-buttons">
                     <button data-system="rental" class="action-button system-button"><i data-lucide="building-2"></i> Gerenciador de Obras</button>
                     <button data-system="stock" class="action-button system-button"><i data-lucide="boxes"></i> Controle de Estoque</button>
                     <button data-system="car" class="action-button system-button"><i data-lucide="car"></i> Controle de Carros</button>
@@ -74,16 +80,33 @@
                     <button id="btn-produtos-aprovacao" class="action-button system-button"><i data-lucide="package-check"></i> Produtos para Aprovação</button>
                 </section>
 
-                <section class="data-table-container">
-                    <h2>Gerenciamento de Funcionários</h2>
-                    <p style="color: var(--text-secondary);">Defina senhas e permissões de visualização para cada funcionário.</p>
-                    <div class="table-wrapper" style="margin-top: 2rem;">
-                        <table>
-                            <thead><tr><th>Funcionário</th><th>Ações</th></tr></thead>
-                            <tbody id="admin-employee-table-body"></tbody>
-                        </table>
-                    </div>
-                </section>
+                <div class="management-sections-wrapper">
+                    <section class="data-table-container" id="employee-management-section">
+                        <h2>Gerenciamento de Funcionários</h2>
+                        <p style="color: var(--text-secondary);">Defina senhas e permissões de visualização para cada funcionário.</p>
+                        <div class="table-wrapper" style="margin-top: 2rem;">
+                            <table>
+                                <thead><tr><th>Funcionário</th><th>Ações</th></tr></thead>
+                                <tbody id="admin-employee-table-body"></tbody>
+                            </table>
+                        </div>
+                    </section>
+    
+                    <section class="data-table-container" id="admin-management-section">
+                        <h2>Gerenciamento de Admins</h2>
+                        <p style="color: var(--text-secondary);">Crie e edite os acessos de outros administradores.</p>
+                        <div class="actions-container" style="justify-content: flex-start; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                            <button id="btn-add-admin" class="action-button"><i data-lucide="user-plus"></i> Novo Admin</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead><tr><th>Admin</th><th>Ações</th></tr></thead>
+                                <tbody id="admin-management-table-body"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
             </div>
         </div>
 
@@ -137,12 +160,35 @@
     <div id="employee-permission-modal" class="modal">
         <div class="modal-content large">
             <span class="close-button" id="employee-permission-modal-close">&times;</span>
-            <h2 id="employee-permission-title">Editar Acessos</h2>
+            <h2 id="employee-permission-title">Editar Acessos de Funcionário</h2>
             <form id="employee-permission-form">
                 <input type="hidden" id="permission-employee-id">
                 <div class="form-group"><label for="permission-employee-password">Nova Senha (deixe em branco para não alterar)</label><input type="password" id="permission-employee-password" autocomplete="new-password"></div>
                 <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">Permissões de Visualização</h3>
                 <div id="permissions-checkboxes" class="form-grid" style="grid-template-columns: 1fr 1fr;"></div>
+                <button type="submit" class="btn-submit"><i data-lucide="save"></i> Guardar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-permission-modal" class="modal">
+        <div class="modal-content large">
+            <span class="close-button" id="admin-permission-modal-close">&times;</span>
+            <h2 id="admin-permission-modal-title">Criar/Editar Admin</h2>
+            <form id="admin-permission-form">
+                <input type="hidden" id="permission-admin-id">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label for="permission-admin-name">Nome do Admin</label>
+                        <input type="text" id="permission-admin-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="permission-admin-password">Senha</label>
+                        <input type="password" id="permission-admin-password" autocomplete="new-password">
+                    </div>
+                </div>
+                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">Permissões de Gerenciamento</h3>
+                <div id="admin-permissions-checkboxes" class="form-grid" style="grid-template-columns: 1fr 1fr;"></div>
                 <button type="submit" class="btn-submit"><i data-lucide="save"></i> Guardar Alterações</button>
             </form>
         </div>
