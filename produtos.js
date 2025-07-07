@@ -62,7 +62,7 @@ function setupClientManager() {
                 <div class="client-actions">
                     <a href="?client=${id}" class="view-button">Editar Produtos</a>
                     <button class="copy-btn" data-url="${viewerUrl}">Copiar Link do Cliente</button>
-                    <button class="delete-client-btn" data-id="${id}" data-name="${client.name}">&times;</button>
+                    <button class="delete-client-btn" data-id="${id}" data-name="${client.name}">×</button>
                 </div>
             `;
             clientListDiv.appendChild(clientItem);
@@ -115,6 +115,7 @@ function setupClientPage(clientId, isViewMode) {
     const editorHeaderTitle = document.getElementById('editor-header-title');
     const viewerHeaderTitle = document.getElementById('viewer-header-title');
     const goToViewerBtn = document.getElementById('go-to-viewer-btn');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
     
     const categoriesContainer = document.getElementById('categories-container');
     const viewerContainer = document.getElementById('viewer-container');
@@ -140,6 +141,7 @@ function setupClientPage(clientId, isViewMode) {
     
     // --- ESTADO LOCAL ---
     let localData = [];
+    let clientName = 'Cliente';
 
     // --- EXIBIÇÃO ---
     clientManagerView.style.display = 'none';
@@ -155,13 +157,100 @@ function setupClientPage(clientId, isViewMode) {
 
     // --- ATUALIZAR TÍTULOS E LINKS ---
     clientRef.child('name').once('value', (snapshot) => {
-        const clientName = snapshot.val() || 'Cliente';
+        clientName = snapshot.val() || 'Cliente';
         editorHeaderTitle.textContent = `Editor de Produtos: ${clientName}`;
         viewerHeaderTitle.textContent = `Aprovação de Produtos: ${clientName}`;
         goToViewerBtn.href = `?client=${clientId}&view=true`;
     });
 
-    // --- LÓGICA DE RENDERIZAÇÃO DE PRODUTOS (Adaptada) ---
+    // --- LÓGICA DE GERAÇÃO DE PDF ---
+    const generatePdf = async () => {
+        const elementToPrint = document.getElementById('viewer-view');
+        const originalButtonText = downloadPdfBtn.textContent;
+    
+        downloadPdfBtn.textContent = 'A preparar o PDF...';
+        downloadPdfBtn.disabled = true;
+    
+        elementToPrint.style.display = 'block';
+    
+        const images = Array.from(elementToPrint.getElementsByTagName('img'));
+        const originalSrcs = new Map();
+    
+        // Função para converter URL de imagem para data URL (base64) usando um proxy CORS
+        const convertImageToDataURL = async (img) => {
+            const originalSrc = img.src;
+            originalSrcs.set(img, originalSrc); 
+    
+            if (originalSrc.startsWith('data:') || !originalSrc) {
+                return;
+            }
+    
+            // URL de um proxy CORS público. Essencial para buscar imagens de outros domínios.
+            // Nota: Para uma aplicação em produção, o ideal seria usar um proxy próprio.
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalSrc)}`;
+    
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error(`A resposta da rede não foi OK para: ${originalSrc}`);
+                }
+                const blob = await response.blob();
+                
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                img.src = dataUrl;
+    
+            } catch (error) {
+                console.warn(`Não foi possível carregar a imagem via proxy: ${originalSrc}`, error);
+                img.src = `https://placehold.co/600x400/f2eee9/5a7d7c?text=Imagem+Indisponível`;
+            }
+        };
+    
+        await Promise.all(images.map(convertImageToDataURL));
+    
+        try {
+            await new Promise(resolve => setTimeout(resolve, 300));
+    
+            const canvas = await html2canvas(elementToPrint, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: false, // Importante definir como false ao usar data URLs
+            });
+    
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`proposta-${clientName.replace(/ /g, '_')}.pdf`);
+    
+        } catch (error) {
+            console.error("Erro ao gerar PDF:", error);
+            alert("Ocorreu um erro ao gerar o PDF. Algumas imagens podem não ter sido carregadas corretamente.");
+        } finally {
+            images.forEach(img => {
+                if (originalSrcs.has(img)) {
+                    img.src = originalSrcs.get(img);
+                }
+            });
+    
+            if (!isViewMode) {
+                elementToPrint.style.display = 'none';
+            }
+            
+            downloadPdfBtn.textContent = originalButtonText;
+            downloadPdfBtn.disabled = false;
+        }
+    };
+
+    // --- LÓGICA DE RENDERIZAÇÃO DE PRODUTOS ---
     const render = (data) => {
         localData = data;
         categoriesContainer.innerHTML = '';
@@ -176,7 +265,7 @@ function setupClientPage(clientId, isViewMode) {
         data.forEach(category => {
             const categorySectionEditor = document.createElement('section');
             categorySectionEditor.className = 'category-section';
-            categorySectionEditor.innerHTML = `<h2>${category.name} <button class="delete-category-btn" data-category-id="${category.id}" title="Excluir Ambiente">&times;</button></h2><div class="cards-grid"></div>`;
+            categorySectionEditor.innerHTML = `<h2>${category.name} <button class="delete-category-btn" data-category-id="${category.id}" title="Excluir Ambiente">×</button></h2><div class="cards-grid"></div>`;
             categoriesContainer.appendChild(categorySectionEditor);
 
             const categorySectionViewer = document.createElement('section');
@@ -223,7 +312,7 @@ function setupClientPage(clientId, isViewMode) {
         } else {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'card-actions-editor';
-            actionsDiv.innerHTML = `<button class="edit-btn" title="Editar">&#9998;</button><button class="delete-btn" title="Excluir">&times;</button>`;
+            actionsDiv.innerHTML = `<button class="edit-btn" title="Editar">✎</button><button class="delete-btn" title="Excluir">×</button>`;
             cardDiv.appendChild(actionsDiv);
         }
         return cardDiv;
@@ -245,7 +334,7 @@ function setupClientPage(clientId, isViewMode) {
         }
     };
 
-    // --- LÓGICA DE MODAIS (sem alteração) ---
+    // --- LÓGICA DE MODAIS ---
     const openFormModal = (cardToEdit = null, categoryId = null) => {
         addCardForm.reset();
         if (cardToEdit && categoryId) {
@@ -268,12 +357,14 @@ function setupClientPage(clientId, isViewMode) {
     const openImageModal = (src) => { imageViewerModal.style.display = 'flex'; modalImage.src = src; };
     const closeImageModal = () => imageViewerModal.style.display = 'none';
 
-    // --- EVENT LISTENERS (Adaptados para o caminho do cliente) ---
+    // --- EVENT LISTENERS ---
+    downloadPdfBtn.addEventListener('click', generatePdf);
+
     addCategoryForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const categoryName = categoryNameInput.value.trim();
         if (categoryName) {
-            dataRef.push({ name: categoryName, cards: {} }); // Adiciona um objeto de cards vazio
+            dataRef.push({ name: categoryName, cards: {} });
             categoryNameInput.value = '';
         }
     });
@@ -351,17 +442,15 @@ function setupClientPage(clientId, isViewMode) {
         if (e.target === imageViewerModal) closeImageModal();
     });
 
-    // Event listener para o botão Voltar
     const voltarAdminBtn = document.getElementById('voltar-admin-btn');
     if (voltarAdminBtn) {
         voltarAdminBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            // Volta para a página anterior (Gerenciador de Clientes)
             window.history.back();
         });
     }
 
-    // --- SINCRONIZAÇÃO COM FIREBASE (Adaptada) ---
+    // --- SINCRONIZAÇÃO COM FIREBASE ---
     dataRef.on('value', (snapshot) => {
         const firebaseData = snapshot.val();
         const dataForRender = [];
