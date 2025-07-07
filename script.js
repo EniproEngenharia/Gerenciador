@@ -233,7 +233,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             canViewStock: true,
                             canViewCar: true,
                             canViewTool: true,
-                            canViewApproval: true
+                            canViewApproval: true,
+                            canViewReports: true
                         } 
                     };
                 }
@@ -270,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('button[data-system="car"]').style.display = permissions.canViewCar ? 'inline-flex' : 'none';
         document.querySelector('button[data-system="tool"]').style.display = permissions.canViewTool ? 'inline-flex' : 'none';
         document.getElementById('btn-produtos-aprovacao').style.display = permissions.canViewApproval ? 'inline-flex' : 'none';
+        document.getElementById('btn-relatorios').style.display = permissions.canViewReports ? 'inline-flex' : 'none';
 
 
         document.getElementById('admin-dashboard-title').textContent = `Painel de ${adminUser.nome}`;
@@ -281,7 +283,9 @@ document.addEventListener('DOMContentLoaded', function () {
         systemButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const systemKey = button.dataset.system;
-                showAdminSubView('system', systemKey, 'adminDashboard');
+                if (systemKey) {
+                    showAdminSubView('system', systemKey, 'adminDashboard');
+                }
             });
         });
 
@@ -289,6 +293,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnProdutosAprovacao) {
             btnProdutosAprovacao.addEventListener('click', () => {
                 window.open('produtos.html', '_blank');
+            });
+        }
+
+        const btnRelatorios = document.getElementById('btn-relatorios');
+        if (btnRelatorios) {
+            btnRelatorios.addEventListener('click', () => {
+                window.open('relatorios.html', '_blank');
             });
         }
         
@@ -357,7 +368,8 @@ document.addEventListener('DOMContentLoaded', function () {
             canViewStock: "Ver Controle de Estoque",
             canViewCar: "Ver Controle de Carros",
             canViewTool: "Ver Controle de Ferramentas",
-            canViewApproval: "Ver Produtos para Aprovação"
+            canViewApproval: "Ver Produtos para Aprovação",
+            canViewReports: "Ver Relatórios"
         };
 
         if (adminId) {

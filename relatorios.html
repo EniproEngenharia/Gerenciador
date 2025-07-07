@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Fotográfico</title>
+    <link rel="stylesheet" href="relatorios.css">
+</head>
+<body>
+
+    <!-- Visualização: Gerenciador de Relatórios (Página Inicial) -->
+    <div id="report-manager-view">
+        <header>
+            <h1>Gerenciador de Relatórios</h1>
+            <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Empresa" class="header-logo">
+        </header>
+        <main>
+            <section class="controls">
+                <form id="add-report-form">
+                    <input type="text" id="report-name-input" placeholder="Nome do novo relatório (ex: Obra 123)" required>
+                    <button type="submit">Criar Relatório</button>
+                </form>
+            </section>
+            <section id="report-list-container">
+                <h2>Relatórios Criados</h2>
+                <div id="report-list">
+                    <p>Carregando relatórios...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Container para as visualizações de Editor e Visualizador (específicas por relatório) -->
+    <div id="report-page-view" style="display: none;">
+        <div id="editor-view">
+            <header>
+                <h1 id="editor-header-title">Editor de Relatório</h1>
+                <div>
+                    <button id="download-pdf-btn" class="view-button">Baixar PDF</button>
+                    <a href="#" id="voltar-admin-btn" class="back-button">← Voltar</a>
+                    <a href="#" id="go-to-viewer-btn" class="view-button">Visualizar Relatório</a>
+                </div>
+            </header>
+            <main>
+                <section class="controls">
+                    <form id="add-step-form">
+                        <input type="text" id="step-name-input" placeholder="Nome da nova etapa (ex: Fundação)" required>
+                        <button type="submit">Criar Etapa</button>
+                    </form>
+                    <button id="show-photo-modal-btn">Adicionar Foto</button>
+                </section>
+                <div id="steps-container"></div>
+            </main>
+        </div>
+
+        <div id="viewer-view">
+            <header>
+                <h1 id="viewer-header-title">Relatório Fotográfico de Serviços</h1>
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczNz7dDYKuC5jH5PJSUP4pvB31MC7JzRRz8w9k4Q37uMp4EQ9uzGubYa4OhHpfwpI0R-XIzhNYBVIwI0pSR0xpmVWAQ0EWcJ2Y9VVSu7oylzCdHHia9ueDT3Cf6nw3bxvjIqO-PuRot036FH7pOeN68=w400-h400-s-no-gm?authuser=1" alt="Logo da Empresa" class="header-logo">
+            </header>
+            <main id="viewer-container"></main>
+        </div>
+    </div>
+
+
+    <!-- Modais -->
+    <div id="add-photo-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <form id="add-photo-form">
+                <h2 id="modal-title">Adicionar Nova Foto</h2>
+                <input type="hidden" id="photo-id-edit">
+                <label for="photo-step">Selecione a Etapa:</label>
+                <select id="photo-step" required></select>
+                <label for="photo-image">URL da Imagem:</label>
+                <input type="url" id="photo-image" placeholder="https://exemplo.com/imagem.jpg" required>
+                <label for="photo-title">Título da Foto:</label>
+                <input type="text" id="photo-title" placeholder="Ex: Vista frontal da fundação" required>
+                <label for="photo-description">Descrição da Foto:</label>
+                <textarea id="photo-description" rows="3" placeholder="Ex: Detalhe da concretagem do dia X" required></textarea>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-photo-btn">Cancelar</button>
+                    <button type="submit" id="save-photo-btn">Salvar Foto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="image-viewer-modal" class="modal-overlay" style="display: none;">
+        <span class="close-image-modal">&times;</span>
+        <img class="modal-image-content" id="modal-image" alt="Imagem Ampliada">
+    </div>
+
+    <!-- Scripts do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <!-- Scripts para Geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Script principal da aplicação -->
+    <script src="relatorios.js"></script>
+</body>
+</html>
