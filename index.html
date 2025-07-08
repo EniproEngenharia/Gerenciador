@@ -151,6 +151,18 @@
         #progress-bar {
             transition: width 0.1s ease-out;
         }
+
+        /* Botão do WhatsApp */
+        .whatsapp-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 40;
+            transition: transform 0.3s ease;
+        }
+        .whatsapp-button:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -499,6 +511,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Botão Flutuante do WhatsApp -->
+    <a href="https://wa.me/551532324836" target="_blank" rel="noopener noreferrer" class="whatsapp-button bg-green-500 w-14 h-14 rounded-full flex items-center justify-center shadow-lg">
+        <img src="https://lh3.googleusercontent.com/pw/AP1GczOziTvtkO3uWMf_rYGVaFiiSMMpesu26fCFjku9h4m0HsosaLyFjTb1reHESwdktVA4UrubpdLtrJJy28YLahN3pziHgQyv1wnrG1SSpunCF79P7_3fjS5meTpuOQOqrnaMdDuUri04jrIIr1WK9B9M=w863-h869-s-no-gm?authuser=1" alt="WhatsApp" class="w-8 h-8">
+    </a>
 
 
     <script>
