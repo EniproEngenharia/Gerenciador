@@ -38,11 +38,82 @@
         .nav-link:hover::after {
             width: 100%;
         }
-        .hero-section {
-            background-image: url('https://lh3.googleusercontent.com/pw/AP1GczNiMxYRK9nuc8B9fNMR4_gRjdeTNhGFT9Q0CN0jIv1IodyBZLBNEvt08UDmUEZal10Rk7d0MDPuxgb3TuFfGeelEIu6Jpzr4zC4_cz4LzfDqESFF66Ng4pdKep6PqrH5E8nGvJ_5hi0GhIO2rG4LzA=w1536-h758-s-no-gm?authuser=1');
-            background-size: cover;
-            background-position: center;
+        
+        /* Animação de Zoom para o Hero Background */
+        @keyframes zoom-out {
+            from {
+                transform: scale(1.1);
+            }
+            to {
+                transform: scale(1);
+            }
         }
+        .hero-bg-animation {
+            animation: zoom-out 20s ease-out forwards;
+        }
+        .hero-section {
+            overflow: hidden; /* Garante que a imagem não ultrapasse os limites */
+        }
+
+        /* Animação de Pulso para Botões */
+        @keyframes pulse-animation {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+            }
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+            }
+        }
+        .btn-pulse {
+            animation: pulse-animation 2.5s infinite;
+            border-radius: 9999px; /* Garante que o shadow seja redondo */
+        }
+
+        /* Animação de construção de letras */
+        .build-letter {
+            display: inline-block; /* Necessário para a transformação */
+            opacity: 0;
+            transform: translateY(20px);
+            animation: build-in 0.5s ease-out forwards;
+        }
+
+        @keyframes build-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Animação de Desenho de Projeto (SVG) */
+        .drawing-path {
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 0.75;
+            fill: none;
+            stroke-dasharray: 1500;
+            stroke-dashoffset: 1500;
+            animation-name: draw-line;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        @keyframes draw-line {
+            0% {
+                stroke-dashoffset: 1500;
+            }
+            50% {
+                stroke-dashoffset: 0;
+            }
+            100% {
+                stroke-dashoffset: -1500;
+            }
+        }
+
         /* Estilos para os modais */
         .modal.hidden {
             display: none;
@@ -75,44 +146,19 @@
             transform: scale(0.95);
             opacity: 0;
         }
-        /* Estilos para a timeline de scroll */
-        #scroll-timeline {
-            transition: opacity 0.5s ease-in-out;
-        }
-        #scroll-timeline.visible {
-            opacity: 0.6; /* Opacidade reduzida para ser menos proeminente */
-        }
-        #scroll-timeline.visible:hover {
-            opacity: 1; /* Opacidade total ao passar o mouse */
-        }
-        #scroll-timeline.visible .timeline-label {
-            opacity: 1;
-        }
-        .timeline-dot {
-            transition: all 0.3s ease;
-        }
-        .timeline-label {
-            transition: all 0.3s ease-in-out;
-            color: #4b5563; /* gray-600 */
-        }
-        li.active .timeline-dot {
-            background-color: #16a34a; /* green-600 */
-            transform: scale(1.5);
-        }
-        li.active .timeline-label {
-            color: #111827; /* gray-900 */
-            font-weight: 600;
-        }
         
-        /* Ocultar a timeline em telas mobile */
-        @media (max-width: 768px) {
-            #scroll-timeline {
-                display: none;
-            }
+        /* Barra de progresso */
+        #progress-bar {
+            transition: width 0.1s ease-out;
         }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
+    <!-- BARRA DE PROGRESSO DE SCROLL -->
+    <div id="progress-container" class="w-full fixed top-0 left-0 h-1.5 z-[60]">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-green-500 to-orange-500" style="width: 0%;"></div>
+    </div>
 
     <!-- CABEÇALHO E NAVEGAÇÃO -->
     <header id="header" class="bg-white shadow-md fixed top-0 left-0 w-full z-50 transition-all duration-300">
@@ -128,7 +174,7 @@
                 <a href="#inicio" class="nav-link text-gray-600 hover:text-green-600 font-medium">Início</a>
                 <a href="#sobre" class="nav-link text-gray-600 hover:text-green-600 font-medium">Sobre Nós</a>
                 <a href="#empreendimentos" class="nav-link text-gray-600 hover:text-green-600 font-medium">Empreendimentos</a>
-                <a href="#contato" class="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition-colors">Solicite um Orçamento</a>
+                <a href="#contato" class="btn-pulse bg-green-600 text-white px-4 py-2 hover:bg-green-700 transition-colors">Solicite um Orçamento</a>
             </nav>
             <button id="mobile-menu-button" class="md:hidden text-gray-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
@@ -139,25 +185,36 @@
             <a href="#inicio" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Início</a>
             <a href="#sobre" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Sobre Nós</a>
             <a href="#empreendimentos" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Empreendimentos</a>
-            <a href="#contato" class="block py-3 px-6 text-gray-600 hover:bg-gray-100">Solicite um Orçamento</a>
+            <a href="#contato" class="block py-3 px-6 text-green-600 font-semibold hover:bg-gray-100">Solicite um Orçamento</a>
         </div>
     </header>
 
     <main>
         <!-- SEÇÃO HERO -->
         <section id="inicio" class="hero-section h-[80vh] relative">
-            <div class="absolute inset-0 bg-black opacity-50"></div>
-            <div class="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-6">
-                <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-4 animate__animated animate__fadeInDown">Construindo com Qualidade</h1>
+            <div class="absolute inset-0 bg-cover bg-center hero-bg-animation" style="background-image: url('https://lh3.googleusercontent.com/pw/AP1GczNiMxYRK9nuc8B9fNMR4_gRjdeTNhGFT9Q0CN0jIv1IodyBZLBNEvt08UDmUEZal10Rk7d0MDPuxgb3TuFfGeelEIu6Jpzr4zC4_cz4LzfDqESFF66Ng4pdKep6PqrH5E8nGvJ_5hi0GhIO2rG4LzA=w1536-h758-s-no-gm?authuser=1');"></div>
+            <div class="absolute inset-0 bg-black opacity-50 z-10"></div>
+            
+            <!-- Animação de Desenho de Projeto -->
+            <div id="hero-drawings" class="absolute inset-0 z-[15] pointer-events-none overflow-hidden">
+                <svg class="absolute w-full h-full" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1200 600">
+                    <!-- Os caminhos SVG serão gerados dinamicamente aqui -->
+                </svg>
+            </div>
+
+            <div class="relative z-20 h-full flex flex-col items-center justify-center text-center text-white px-6">
+                <h1 id="building-title" class="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-4">
+                    Construindo com Qualidade
+                </h1>
                 <p class="text-lg md:text-xl max-w-3xl mb-8 animate__animated animate__fadeInUp animate__delay-1s">Engenharia que constrói valor para o seu futuro.</p>
-                <a href="#empreendimentos" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105 animate__animated animate__pulse animate__delay-2s animate__infinite">Conheça Nossos Projetos</a>
+                <a href="#empreendimentos" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-transform transform hover:scale-105">Conheça Nossos Projetos</a>
             </div>
         </section>
 
         <!-- SEÇÃO SOBRE NÓS -->
         <section id="sobre" class="py-16 sm:py-20 bg-white overflow-hidden -mt-20 relative z-10 rounded-t-2xl">
             <div class="container mx-auto px-4 sm:px-6">
-                <div class="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+                <div id="counters-section" class="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                     <div class="animate-on-scroll" data-animation="animate__fadeInLeft">
                         <img src="https://lh3.googleusercontent.com/pw/AP1GczNJjWGRsGcrvqSc06JneEco3xmFEOJGcpXFIVPTDWdvGML_jKNIwqzKzsRmwKrNIDcHVhjCqCEjH_bsdyw9kp_3rOb72xGzjIl4XNWx7zFXPKBe1S9M7HwpYE2Kn_yLIyKu4ou7XjtrxzTy_FTxEgM=w1216-h913-s-no-gm?authuser=1/600x400/e2e8f0/2d3748?text=Nossa+Equipe" alt="Equipe da construtora" class="rounded-lg shadow-2xl w-5/6 mx-auto">
                     </div>
@@ -168,15 +225,15 @@
                         </p>
                         <div class="flex justify-center md:justify-start space-x-6 mb-6">
                             <div class="text-center">
-                                <p class="text-2xl sm:text-3xl font-bold text-green-600">+50</p>
+                                <p id="projects-counter" class="text-2xl sm:text-3xl font-bold text-green-600">0</p>
                                 <p class="text-gray-500 text-sm sm:text-base">Projetos Entregues</p>
                             </div>
                             <div class="text-center">
-                                <p class="text-2xl sm:text-3xl font-bold text-green-600">+1.200</p>
+                                <p id="clients-counter" class="text-2xl sm:text-3xl font-bold text-green-600">0</p>
                                 <p class="text-gray-500 text-sm sm:text-base">Clientes Satisfeitos</p>
                             </div>
                         </div>
-                        <button id="open-history-modal-btn" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105 mt-4">Conheça toda nossa história</button>
+                        <button id="open-history-modal-btn" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-transform transform hover:scale-105 mt-4">Conheça toda nossa história</button>
                     </div>
                 </div>
             </div>
@@ -200,7 +257,7 @@
                     <!-- Os cards dos projetos serão inseridos aqui pelo JavaScript -->
                 </div>
                 <div class="text-center mt-12 animate-on-scroll" data-animation="animate__fadeInUp">
-                    <button id="open-all-projects-modal-btn" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-transform transform hover:scale-105">
+                    <button id="open-all-projects-modal-btn" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-transform transform hover:scale-105">
                         Ver Todos os Projetos
                     </button>
                 </div>
@@ -312,39 +369,13 @@
                             <textarea id="message" name="message" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Digite sua mensagem aqui..." required></textarea>
                         </div>
                         <div class="text-center">
-                            <button type="submit" class="bg-orange-500 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-600 transition-colors">Enviar Mensagem</button>
+                            <button type="submit" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-colors">Enviar Mensagem</button>
                         </div>
                     </form>
                 </div>
             </div>
         </section>
     </main>
-
-    <!-- TIMELINE DE SCROLL -->
-    <nav id="scroll-timeline" class="fixed right-5 top-1/2 -translate-y-1/2 z-40 opacity-0">
-        <ul class="flex flex-col space-y-2 items-end">
-            <li class="flex items-center">
-                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Início</span>
-                <a href="#inicio" title="Início" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="inicio"></a>
-            </li>
-            <li class="flex items-center">
-                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Sobre Nós</span>
-                <a href="#sobre" title="Sobre Nós" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="sobre"></a>
-            </li>
-            <li class="flex items-center">
-                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Empreendimentos</span>
-                <a href="#empreendimentos" title="Empreendimentos" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="empreendimentos"></a>
-            </li>
-            <li class="flex items-center">
-                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Diferenciais</span>
-                <a href="#diferenciais" title="Diferenciais" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="diferenciais"></a>
-            </li>
-            <li class="flex items-center">
-                <span class="timeline-label mr-3 text-sm text-gray-700 font-medium opacity-0">Contato</span>
-                <a href="#contato" title="Contato" class="timeline-dot block w-3 h-3 bg-gray-400 rounded-full" data-section="contato"></a>
-            </li>
-        </ul>
-    </nav>
 
     <!-- RODAPÉ -->
     <footer class="bg-gray-800 text-white">
@@ -752,8 +783,117 @@
 
         scrollElements.forEach(el => observer.observe(el));
 
+        // --- ANIMAÇÃO DOS CONTADORES ---
+        function animateCounter(element, start, end, duration) {
+            let startTime = null;
+            const step = (timestamp) => {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                element.textContent = `+${Math.floor(progress * (end - start) + start)}`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.textContent = `+${end}`;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        const counterSection = document.getElementById('counters-section');
+        const projectsCounter = document.getElementById('projects-counter');
+        const clientsCounter = document.getElementById('clients-counter');
+
+        const counterObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounter(projectsCounter, 0, 50, 2000);
+                    animateCounter(clientsCounter, 0, 1200, 2500);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        if(counterSection) {
+            counterObserver.observe(counterSection);
+        }
+        
+        // --- ANIMAÇÃO DE CONSTRUÇÃO DE TÍTULO ---
+        function setupBuildingTitle() {
+            const titleElement = document.getElementById('building-title');
+            if (!titleElement) return;
+
+            const text = titleElement.textContent.trim();
+            titleElement.innerHTML = ''; // Limpa o texto original
+
+            text.split('').forEach((char, index) => {
+                const span = document.createElement('span');
+                
+                if (char === ' ') {
+                    // Mantém os espaços sem animação para o espaçamento correto
+                    span.innerHTML = '&nbsp;';
+                } else {
+                    span.className = 'build-letter';
+                    span.textContent = char;
+                    span.style.animationDelay = `${index * 0.05}s`; // Atraso para cada letra
+                }
+                
+                titleElement.appendChild(span);
+            });
+        }
+
+        // --- ANIMAÇÃO DE DESENHO ALEATÓRIO ---
+        function createRandomDrawings() {
+            const drawingContainer = document.getElementById('hero-drawings').querySelector('svg');
+            if (!drawingContainer) return;
+
+            drawingContainer.innerHTML = ''; // Limpa caminhos existentes
+            const numberOfLines = 10; // Aumenta o número de linhas para um efeito mais preenchido
+            const viewBoxWidth = 1200;
+            const viewBoxHeight = 600;
+
+            for (let i = 0; i < numberOfLines; i++) {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                
+                const startX = Math.random() * viewBoxWidth;
+                const startY = Math.random() * viewBoxHeight;
+                const endX = Math.random() * viewBoxWidth;
+                const endY = Math.random() * viewBoxHeight;
+                const controlX = Math.random() * viewBoxWidth;
+                const controlY = Math.random() * viewBoxHeight;
+
+                // 50% de chance de ser uma linha reta, 50% de ser uma curva
+                const d = Math.random() > 0.5 
+                    ? `M ${startX} ${startY} L ${endX} ${endY}`
+                    : `M ${startX} ${startY} Q ${controlX} ${controlY}, ${endX} ${endY}`;
+
+                path.setAttribute('d', d);
+                path.classList.add('drawing-path');
+                
+                // Randomiza a duração e o atraso da animação para cada linha
+                const duration = Math.random() * 10 + 8; // Duração entre 8s e 18s
+                const delay = Math.random() * -10;      // Atraso negativo para iniciar em um ponto aleatório do ciclo
+                
+                path.style.animationDuration = `${duration}s`;
+                path.style.animationDelay = `${delay}s`;
+
+                drawingContainer.appendChild(path);
+            }
+        }
+
+        // --- LÓGICA DA BARRA DE PROGRESSO ---
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100;
+            progressBar.style.width = `${scrollPercent}%`;
+        }
+
+
         // --- INICIALIZAÇÃO ---
         renderMainGallery();
+        setupBuildingTitle();
+        createRandomDrawings(); // Gera os desenhos aleatórios
+        window.addEventListener('scroll', updateProgressBar);
 
         // Lidar com Esc para fechar qualquer modal aberto
         document.addEventListener('keydown', (e) => {
@@ -792,42 +932,6 @@
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         });
 
-        // --- LÓGICA DA TIMELINE DE SCROLL ---
-        const timeline = document.getElementById('scroll-timeline');
-        const timelineItems = document.querySelectorAll('#scroll-timeline li');
-        const sections = document.querySelectorAll('main section[id]');
-        let scrollTimeout;
-
-        function handleScroll() {
-            // Mostra a timeline
-            timeline.classList.add('visible');
-
-            // Limpa o timeout anterior e define um novo para esconder a timeline
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                timeline.classList.remove('visible');
-            }, 1500); // Esconde após 1.5s de inatividade
-
-            // Atualiza o dot ativo
-            let currentSectionId = '';
-            sections.forEach(section => {
-                const sectionTop = section.getBoundingClientRect().top;
-                // Considera a seção ativa quando seu topo passa da metade da tela
-                if (sectionTop < window.innerHeight / 2) {
-                    currentSectionId = section.id;
-                }
-            });
-
-            timelineItems.forEach(item => {
-                const dot = item.querySelector('.timeline-dot');
-                item.classList.remove('active');
-                if (dot && dot.getAttribute('data-section') === currentSectionId) {
-                    item.classList.add('active');
-                }
-            });
-        }
-
-        window.addEventListener('scroll', handleScroll, { passive: true });
     });
     </script>
 </body>
