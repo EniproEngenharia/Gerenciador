@@ -20,6 +20,10 @@
     <!-- Ícones: Lucide.dev -->
     <script src="https://unpkg.com/lucide-react@0.292.0/dist/lucide-react.js"></script>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
         /* Estilo customizado para usar a fonte Poppins */
@@ -257,23 +261,18 @@
         <section id="empreendimentos" class="py-16 sm:py-20 bg-gray-50">
             <div class="container mx-auto px-4 sm:px-6">
                 <div class="text-center mb-12 animate-on-scroll" data-animation="animate__fadeInUp">
-                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Nossos Empreendimentos</h2>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Alguns de nossos empreendimentos</h2>
                     <p class="text-gray-700 mt-2">Conheça os projetos que definem nosso padrão de qualidade.</p>
                 </div>
                 
                 <div id="project-filters" class="flex justify-center flex-wrap gap-4 md:space-x-8 mb-10 animate-on-scroll" data-animation="animate__fadeInUp" data-delay="200">
-                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="residencial">Residencial</button>
+                    <button class="filter-btn active px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="condominios">Condominios</button>
                     <button class="filter-btn text-gray-500 px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="comercial">Comercial</button>
                     <button class="filter-btn text-gray-500 px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base" data-filter="industrial">Industrial</button>
                 </div>
 
                 <div id="project-gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <!-- Os cards dos projetos serão inseridos aqui pelo JavaScript -->
-                </div>
-                <div class="text-center mt-12 animate-on-scroll" data-animation="animate__fadeInUp">
-                    <button id="open-all-projects-modal-btn" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-transform transform hover:scale-105">
-                        Ver Todos os Projetos
-                    </button>
                 </div>
             </div>
         </section>
@@ -362,8 +361,8 @@
                 </div>
 
                 <!-- Formulário de Contato -->
-                <div class="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-4xl mx-auto animate-on-scroll" data-animation="animate__fadeInUp" data-delay="400">
-                    <form action="#" method="POST">
+                <div id="contact-form-container" class="bg-white p-6 sm:p-8 md:p-12 rounded-lg shadow-xl max-w-4xl mx-auto animate-on-scroll" data-animation="animate__fadeInUp" data-delay="400">
+                    <form id="contact-form">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="mb-4">
                                 <label for="name" class="block text-gray-700 font-medium mb-2">Nome</label>
@@ -386,6 +385,10 @@
                             <button type="submit" class="btn-pulse bg-orange-500 text-white font-bold py-3 px-8 hover:bg-orange-600 transition-colors">Enviar Mensagem</button>
                         </div>
                     </form>
+                    <div id="form-success-message" class="hidden text-center">
+                        <h3 class="text-2xl font-bold text-green-600 mb-4">Obrigado!</h3>
+                        <p class="text-gray-700">Sua mensagem foi enviada com sucesso. Entraremos em contato em breve.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -452,19 +455,27 @@
 
     <!-- MODAL SIMPLES (PARA OS CARDS DA PÁGINA INICIAL) -->
     <div id="project-modal" class="modal fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 hidden">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row transform transition-transform duration-300 scale-95 overflow-y-auto">
-            <button id="close-modal-btn" class="absolute top-2 right-2 md:-top-3 md:-right-3 text-white bg-gray-800 rounded-full h-8 w-8 flex items-center justify-center z-10 hover:bg-red-600">
+        <div class="relative w-full max-w-4xl transform transition-transform duration-300 scale-95">
+            <button id="close-modal-btn" class="absolute -top-2 -right-2 text-white bg-gray-800 rounded-full h-8 w-8 flex items-center justify-center z-20 hover:bg-red-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-            <div class="w-full md:w-3/5 p-2 md:p-4 flex-shrink-0">
-                <div class="relative h-64 md:h-full">
-                    <img id="modal-image" src="" alt="Foto do empreendimento" class="w-full h-full rounded-lg object-cover">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-h-[90vh] flex flex-col md:flex-row overflow-hidden">
+                <div class="w-full md:w-3/5 p-2 md:p-4 flex-shrink-0">
+                    <div class="relative h-64 md:h-full">
+                        <img id="modal-image" src="" alt="Foto do empreendimento" class="w-full h-full rounded-lg object-cover">
+                        <button id="modal-prev-btn" class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-2 rounded-full hover:bg-opacity-60 transition-colors hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <button id="modal-next-btn" class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white p-2 rounded-full hover:bg-opacity-60 transition-colors hidden">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="w-full md:w-2/5 p-6 flex flex-col justify-center">
-                <h3 id="modal-title" class="text-xl md:text-2xl font-bold text-gray-900 mb-2"></h3>
-                <p id="modal-location" class="text-md text-gray-500 mb-4"></p>
-                <p id="modal-description" class="text-gray-700 leading-relaxed"></p>
+                <div class="w-full md:w-2/5 p-6 flex flex-col justify-center overflow-y-auto">
+                    <h3 id="modal-title" class="text-xl md:text-2xl font-bold text-gray-900 mb-2"></h3>
+                    <p id="modal-location" class="text-md text-gray-500 mb-4"></p>
+                    <p id="modal-description" class="text-gray-700 leading-relaxed"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -525,16 +536,15 @@
         
         // --- BANCO DE DADOS DOS PROJETOS ---
         const allProjects = [
-            { id: 0, title: 'Laponia', location: 'Itu, SP', category: 'industrial', status: 'finalizada', description: 'Projeto industrial de grande porte com soluções inovadoras em logística e produção. A obra foi concluída com foco em sustentabilidade e eficiência energética.', images: ['https://photos.fife.usercontent.google.com/pw/AP1GczNjPXTIql6sLoPpnWBNFDONuOMPhxzkhOMcbcBrOg6_w-veBukDIZc=w1359-h913-s-no-gm?authuser=1', 'https://lh3.googleusercontent.com/pw/AP1GczPGrCj360amtISdNhpazCh8OYak6XBHhD-EvP5yeUR98LDftPZ-9zG4qBfxmmS_r_tn_7PDPiNwU1iJaDpagc49FWxtFwh4IrK-FYlaW3gGXvE_x-U2pMdy4POdxELffGxX_Ll5mx2g2fe6IK3_coY=w886-h661-s-no-gm?authuser=1'] },
-            { id: 1, title: 'Symrise', location: 'Sorocaba, SP', category: 'industrial', status: 'finalizada', description: 'Edificação corporativa com design moderno e sustentável. O projeto incluiu laboratórios de alta tecnologia e áreas de convivência para colaboradores.', images: ['https://lh3.googleusercontent.com/pw/AP1GczPGrCj360amtISdNhpazCh8OYak6XBHhD-EvP5yeUR98LDftPZ-9zG4qBfxmmS_r_tn_7PDPiNwU1iJaDpagc49FWxtFwh4IrK-FYlaW3gGXvE_x-U2pMdy4POdxELffGxX_Ll5mx2g2fe6IK3_coY=w886-h661-s-no-gm?authuser=1', 'https://photos.fife.usercontent.google.com/pw/AP1GczNjPXTIql6sLoPpnWBNFDONuOMPhxzkhOMcbcBrOg6_w-veBukDIZc=w1359-h913-s-no-gm?authuser=1'] },
-            { id: 2, title: 'Residencial Sol Nascente', location: 'Campinas, SP', category: 'residencial', status: 'projeto', description: 'Condomínio de apartamentos em fase de projeto. Foco em áreas de lazer completas e integração com a natureza.', images: ['https://placehold.co/800x600/f97316/ffffff?text=Sol+Nascente+1', 'https://placehold.co/800x600/f97316/ffffff?text=Sol+Nascente+2'] },
-            { id: 3, title: 'Centro Comercial Plaza', location: 'Jundiaí, SP', category: 'comercial', status: 'finalizada', description: 'Complexo de lojas e escritórios entregue com sucesso, tornando-se um novo ponto de referência na cidade.', images: ['https://placehold.co/800x600/3b82f6/ffffff?text=Plaza+1', 'https://placehold.co/800x600/3b82f6/ffffff?text=Plaza+2'] },
-            { id: 4, title: 'Parque Industrial Inova', location: 'Sumaré, SP', category: 'industrial', status: 'projeto', description: 'Projeto de um parque industrial focado em empresas de tecnologia. Infraestrutura de ponta em andamento.', images: ['https://placehold.co/800x600/84cc16/ffffff?text=Inova+1', 'https://placehold.co/800x600/84cc16/ffffff?text=Inova+2'] },
-            { id: 5, title: 'Edifício Corporativo Delta', location: 'São Paulo, SP', category: 'comercial', status: 'finalizada', description: 'Torre corporativa de alto padrão na capital paulista, com certificação de sustentabilidade LEED Gold.', images: ['https://placehold.co/800x600/6366f1/ffffff?text=Delta+1', 'https://placehold.co/800x600/6366f1/ffffff?text=Delta+2'] },
-            { id: 6, title: 'Condomínio Bosque Real', location: 'Valinhos, SP', category: 'residencial', status: 'finalizada', description: 'Condomínio de casas de alto padrão entregue, com ênfase em segurança e áreas verdes preservadas.', images: ['https://placehold.co/800x600/10b981/ffffff?text=Bosque+Real+1', 'https://placehold.co/800x600/10b981/ffffff?text=Bosque+Real+2'] },
-            { id: 7, title: 'Galpão Logístico Express', location: 'Itupeva, SP', category: 'industrial', status: 'finalizada', description: 'Centro de distribuição estratégico com docas e pátio de manobra otimizados para grandes operações.', images: ['https://placehold.co/800x600/a7f3d0/000000?text=Express+1', 'https://placehold.co/800x600/a7f3d0/000000?text=Express+2'] },
-            { id: 8, title: 'Torre Médica Vitalis', location: 'Sorocaba, SP', category: 'comercial', status: 'projeto', description: 'Futuro centro médico que abrigará consultórios e clínicas, com projeto arquitetônico focado no bem-estar.', images: ['https://placehold.co/800x600/ec4899/ffffff?text=Vitalis+1', 'https://placehold.co/800x600/ec4899/ffffff?text=Vitalis+2'] },
-            { id: 9, title: 'Residencial Vista do Vale', location: 'Vinhedo, SP', category: 'residencial', status: 'projeto', description: 'Lançamento de apartamentos com vista privilegiada e conceito de clube residencial. Obras em andamento.', images: ['https://placehold.co/800x600/f59e0b/ffffff?text=Vista+do+Vale+1', 'https://placehold.co/800x600/f59e0b/ffffff?text=Vista+do+Vale+2'] },
+            { id: 0, title: 'Resiplastic', location: 'Sorocaba, Sp', category: 'industrial', status: 'finalizada', description: 'Fomos responsáveis pela execução da obra da Resiplastic, que abrangeu a construção da portaria, do prédio administrativo e da parte fabril. O projeto foi entregue seguindo rigorosas especificações técnicas para atender às demandas operacionais da indústria.', images: ['https://lh3.googleusercontent.com/pw/AP1GczN6B5A4BwrbzY_XCBfFYMddYfqKQqCjsp9OSeqVBqx5ttMvmJ4DDzPh4jZUWxKkTi6-MQzcGz9Q48B0BlwhO6XEoZEDGAtElhMx-6poLxFYeQdlsEr0F8YLpCyubS-xSJwYCo-0FUrfCuhSCOiLH1t7=w651-h869-s-no-gm?authuser=1', 'https://placehold.co/800x600/a855f7/ffffff?text=Resiplastic+2'] },
+            { id: 1, title: 'Heller', location: 'Sorocaba, Sp', category: 'industrial', status: 'finalizada', description: 'Prestamos serviços essenciais para a operação contínua da Heller, incluindo a criação de bases técnicas para seu maquinário e a manutenção predial preventiva e corretiva. Nosso trabalho garante que a infraestrutura da empresa funcione sempre com máxima eficiência.', images: ['https://lh3.googleusercontent.com/pw/AP1GczMOusF2L-LN_A6g9slYmua_CtH1xOENY94k-Qf68vB9xx_WOfS5aFgJAKhmEX1SJnM9LGvS_rLlfuvL-lV7d2dQdyrDIvDDc9XPU-FclhZd46wm6lDwU_MUZoR4JNJFeEtblhixwUE0CUTvCSGB9cNx=w1200-h722-s-no-gm?authuser=1', 'https://placehold.co/800x600/84cc16/ffffff?text=Heller+2'] },
+            { id: 2, title: 'Residencial Giverny', location: 'Sorocaba, SP', category: 'condominios', status: 'finalizada', description: 'No Residencial Giverny, fomos responsáveis por toda a obra, da estrutura ao acabamento final. O projeto contemplou também a criação de um novo salão de festas e academia, sempre com o compromisso de entregar um trabalho de excelência e aprimorar o ambiente para os condôminos.', images: ['https://lh3.googleusercontent.com/pw/AP1GczMCrg8C0HhEpwo2mh3SFDFlC6YXs3pvcMsjk-zNMi002UCikqULXxWO_DDWHeZ7wvJzcUQrc6dGmKDrF7YlQmUiOLh57KsPDmGS99EHP3twr0umfUyOFRWwS9db8YlBtkmYLlgSNi8qyQ6YXsLb3xdb=w1159-h869-s-no-gm?authuser=1', 'https://placehold.co/800x600/10b981/ffffff?text=Giverny+2'] },
+            { id: 3, title: 'Centro Medico', location: 'Sorocaba, Sp', category: 'comercial', status: 'finalizada', description: 'Executamos o projeto de expansão do centro médico para abrigar novos equipamentos de tomografia e ressonância magnética. Da adequação estrutural à finalização das salas especializadas, entregamos uma solução completa que moderniza a infraestrutura de saúde e reforça o compromisso do centro médico com a excelência.', images: ['https://lh3.googleusercontent.com/pw/AP1GczOKpRVQ1OGeiJtrGqfk7T_72QwB9-YMj52LTwkzhYi_BUsDTLKIpqwz7cinhRSFoNvI79DraFsRaV_SZ-2RFkIzTo10bVWri4hzuMgNteDzUYdRVKO3NH2xe1j2-dOx-wYPT9Vm_Tm--0cYN5y29lHd=w855-h869-s-no-gm?authuser=1', 'https://placehold.co/800x600/3b82f6/ffffff?text=Centro+Medico+2'] },
+            { id: 4, title: 'Bericap', location: 'Sorocaba, Sp', category: 'industrial', status: 'finalizada', description: 'Executamos a modernização completa dos banheiros da Bericap, com foco em durabilidade, funcionalidade e facilidade de manutenção. A obra utilizou materiais de alta resistência, adequados ao ambiente industrial, garantindo um resultado de longa vida útil e de acordo com as normas de saúde.', images: ['https://lh3.googleusercontent.com/pw/AP1GczO0otuVKmHkG1E1bJtX9-4KF-s8_dBhrGMZ7Tf4P6QzFgKU9B3kkIW8qlz_7T630WNMBQmNRS4pkSwMZ4rH5T_k5-onLj8MN_udm9IMjSjUO8ixldLVdJlB9AMV92dWXFziRSZpk-dA9E4Lyag8zEvq=w720-h426-s-no-gm?authuser=1', 'https://placehold.co/800x600/f43f5e/ffffff?text=Bericap+2'] },
+            { id: 5, title: 'Fadi', location: 'Sorocaba, Sp', category: 'comercial', status: 'finalizada', description: 'Realizamos a completa reforma e ampliação da Faculdade de Direito, modernizando suas instalações para atender às necessidades do ensino jurídico contemporâneo. O projeto incluiu a renovação de salas de aula, a criação de novos espaços de estudo e a otimização das áreas de convivência, resultando em um ambiente mais funcional e inspirador para alunos e professores.', images: ['https://lh3.googleusercontent.com/pw/AP1GczNoTodjJcdBf7wzyP029txVuvsExo-eTx_Pu40hAUZNL3-jzw7t9waogE2dyBxDpUDZvHm6OwCAj5K3l5BkAtr5tMqRfxceDpWmi75A20ZP8TufLtcyGUHEIhmi1gThqeZjUiPNN4r9RC_PGNlHYcdq=w1159-h869-s-no-gm?authuser=1', 'https://placehold.co/800x600/6366f1/ffffff?text=Fadi+2'] },
+            { id: 6, title: 'Alphaville Castelo', location: 'Itu, SP', category: 'condominios', status: 'finalizada', description: 'Realizamos a construção do clube, o novo coração do lazer no Alphaville Castelo, e da sede administrativa, otimizando a gestão do condomínio. Ambas as edificações foram projetadas para oferecer máxima funcionalidade e conforto aos moradores e à equipe de gestão.', images: ['https://lh3.googleusercontent.com/pw/AP1GczPbaNM4SJIUnlGbZoni4sKWpVktBVj0uzZ0aq9agotgtSTw0tikc32YJ9JzE5EejwNib64KLxiVkND56lhacJExEJVNp_tKW71c206phqRMkvpf9xf5IQDC4t5mwlVA9q_ADiG_6olygrjr5_erO2YL=w550-h413-s-no-gm?authuser=1', 'https://placehold.co/800x600/f59e0b/ffffff?text=Alphaville+2'] },
+            { id: 8, title: 'Ossel', location: 'Sorocaba, Sp', category: 'comercial', status: 'finalizada', description: 'Realizamos o projeto de ampliação e modernização da Ossel, criando ambientes que oferecem mais do que um serviço: um acolhimento digno. A obra foi pensada para proporcionar conforto e serenidade, com espaços mais amplos, climatizados e uma infraestrutura moderna para apoiar as famílias em todos os detalhes.', images: ['https://lh3.googleusercontent.com/pw/AP1GczOaybw72p5lUI5P9RRdqVSeJrSzf6ogr5TD4Jl0EKMB17A3ZZ4s-EksO-XCT2TWAiqYnA5Vg8V-KA28zpJeP36p23em7PO9uH6I2To7_Jt8idbeC7UvWHeRfDXrPnL3aoZ2CZMbPho6iPZ7PV4J5dlD=w551-h556-s-no-gm?authuser=1', 'https://placehold.co/800x600/ec4899/ffffff?text=Ossel+2'] },
+            { id: 9, title: 'Belvedere', location: 'Sorocaba, SP', category: 'condominios', status: 'finalizada', description: 'No projeto Belvedere, fomos responsáveis pela construção das portarias, pela execução de todos os fechamentos do perímetro e pela edificação do clube. Uma solução completa que estabelece a organização, a privacidade e a área de convivência do condomínio.', images: ['https://lh3.googleusercontent.com/pw/AP1GczMlM8rRC9itfAzOG4UhomkEWjwYFZeNNfrkQXIjqWL58BuTylbnzN_BAEpVsqWpLnJYsEAdG1YiQsW-Xn2V711jsOhrSDiGI0CBKzJbfKoT6JvZ0ksg6uTeTg4sGqWMMOMK1lvxCI0QIhNaidqZHlYR=w768-h520-s-no-gm?authuser=1', 'https://placehold.co/800x600/f97316/ffffff?text=Belvedere+2'] },
         ];
 
         // --- RENDERIZAÇÃO INICIAL E FILTROS DA PÁGINA PRINCIPAL ---
@@ -565,7 +575,7 @@
             return card;
         }
 
-        function renderMainGallery(filter = 'residencial') {
+        function renderMainGallery(filter = 'condominios') {
             projectGallery.classList.add('hiding');
 
             setTimeout(() => {
@@ -599,19 +609,37 @@
         const modalTitle = document.getElementById('modal-title');
         const modalLocation = document.getElementById('modal-location');
         const modalDescription = document.getElementById('modal-description');
+        const modalPrevBtn = document.getElementById('modal-prev-btn');
+        const modalNextBtn = document.getElementById('modal-next-btn');
         
         const historyModal = document.getElementById('history-modal');
         const openHistoryModalBtn = document.getElementById('open-history-modal-btn');
         const closeHistoryModalBtn = document.getElementById('close-history-modal-btn');
 
+        let currentSimpleGalleryProject = null;
+        let currentSimpleGalleryImageIndex = 0;
+
+        function updateSimpleGalleryImage() {
+            if (!currentSimpleGalleryProject) return;
+            modalImage.src = currentSimpleGalleryProject.images[currentSimpleGalleryImageIndex];
+
+            const hasMultipleImages = currentSimpleGalleryProject.images.length > 1;
+            modalPrevBtn.classList.toggle('hidden', !hasMultipleImages);
+            modalNextBtn.classList.toggle('hidden', !hasMultipleImages);
+        }
+
         function openSimpleModal(projectId) {
             const project = allProjects.find(p => p.id == projectId);
             if (!project) return;
             
-            modalImage.src = project.images[0];
+            currentSimpleGalleryProject = project;
+            currentSimpleGalleryImageIndex = 0;
+
             modalTitle.textContent = project.title;
             modalLocation.textContent = project.location;
             modalDescription.textContent = project.description;
+            
+            updateSimpleGalleryImage();
             
             projectModal.classList.remove('hidden');
             setTimeout(() => {
@@ -629,6 +657,18 @@
                 document.body.style.overflow = '';
             }, 300);
         }
+
+        modalPrevBtn.addEventListener('click', () => {
+            if (!currentSimpleGalleryProject) return;
+            currentSimpleGalleryImageIndex = (currentSimpleGalleryImageIndex - 1 + currentSimpleGalleryProject.images.length) % currentSimpleGalleryProject.images.length;
+            updateSimpleGalleryImage();
+        });
+
+        modalNextBtn.addEventListener('click', () => {
+            if (!currentSimpleGalleryProject) return;
+            currentSimpleGalleryImageIndex = (currentSimpleGalleryImageIndex + 1) % currentSimpleGalleryProject.images.length;
+            updateSimpleGalleryImage();
+        });
 
         function openHistoryModal() {
             historyModal.classList.remove('hidden');
@@ -780,7 +820,9 @@
             }, 300);
         }
 
-        openAllProjectsBtn.addEventListener('click', openAllProjectsModal);
+        if (openAllProjectsBtn) {
+            openAllProjectsBtn.addEventListener('click', openAllProjectsModal);
+        }
         closeAllProjectsBtn.addEventListener('click', closeAllProjectsModal);
         allProjectsModal.addEventListener('click', (e) => {
             if (e.target === allProjectsModal) closeAllProjectsModal();
@@ -907,7 +949,48 @@
             progressBar.style.width = `${scrollPercent}%`;
         }
 
+        // --- LÓGICA DO FORMULÁRIO DE CONTATO ---
+        const contactForm = document.getElementById('contact-form');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(contactForm);
+                const data = {
+                    name: formData.get('name'),
+                    email: formData.get('email'),
+                    subject: formData.get('subject'),
+                    message: formData.get('message'),
+                    timestamp: new Date()
+                };
 
+                // Substitua com a sua configuração do Firebase
+                const firebaseConfig = {
+                    apiKey: "SUA_API_KEY",
+                    authDomain: "SEU_AUTH_DOMAIN",
+                    projectId: "SEU_PROJECT_ID",
+                    storageBucket: "SEU_STORAGE_BUCKET",
+                    messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+                    appId: "SEU_APP_ID"
+                };
+
+                // Inicializa o Firebase
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                const db = firebase.firestore();
+
+                db.collection("contact_messages").add(data)
+                .then(() => {
+                    contactForm.style.display = 'none';
+                    document.getElementById('form-success-message').classList.remove('hidden');
+                })
+                .catch((error) => {
+                    console.error("Erro ao adicionar documento: ", error);
+                    alert('Ocorreu um erro ao enviar a sua mensagem. Por favor, tente novamente.');
+                });
+            });
+        }
+        
         // --- INICIALIZAÇÃO ---
         renderMainGallery();
         setupBuildingTitle();
